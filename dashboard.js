@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, updateDoc, doc, getDoc, arrayUnion, setDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, updateDoc, doc, getDoc, arrayUnion, arrayRemove, setDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 const firebaseConfig = {
@@ -15,7 +15,6 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// FIX: form ko select kiya taaki page reload na ho
 const postForm = document.getElementById('create-post-form'); 
 const postInput = document.getElementById('post-input');
 const feedContainer = document.getElementById('live-posts');
@@ -52,14 +51,13 @@ logoutBtn.addEventListener('click', function() {
     signOut(auth).then(() => window.location.href = "index.html");
 });
 
-// 3. Create Post (FIXED PAGE RELOAD BUG & AUTHOR ID)
+// 3. Create Post
 postForm.addEventListener('submit', async function(e) {
-    e.preventDefault(); // Yeh page ko refresh hone se rokega
+    e.preventDefault();
 
     const text = postInput.value;
     if (text.trim() === "" || !userProfile) return;
 
-    // Button disable karo taaki double click na ho
     const btn = postForm.querySelector('button');
     btn.disabled = true;
     btn.innerText = "Posting...";
@@ -67,11 +65,12 @@ postForm.addEventListener('submit', async function(e) {
     try {
         await addDoc(collection(db, "campus_posts"), {
             content: text,
-            authorId: currentUser.uid, // ✅ FIX: Added authorId so profile page can filter it
+            authorId: currentUser.uid, 
             authorName: userProfile.fullName,
             authorBranch: userProfile.branch,
             authorYear: userProfile.year,
             likes: 0,
+            likedBy: [], // NAYA LOGIC: Empty array initialize kiya
             comments: [], 
             timestamp: new Date()
         });
@@ -84,7 +83,7 @@ postForm.addEventListener('submit', async function(e) {
     }
 });
 
-// 4. Live Feed with Collapsible Comments & Limit
+// 4. Live Feed with New Like Logic
 const postsQuery = query(collection(db, "campus_posts"), orderBy("timestamp", "desc"));
 
 onSnapshot(postsQuery, (snapshot) => {
@@ -103,7 +102,6 @@ onSnapshot(postsQuery, (snapshot) => {
         const commentsList = postData.comments || [];
         let commentsHTML = '';
         
-        // Show only the first 15 comments
         const displayLimit = 15;
         const visibleComments = commentsList.slice(0, displayLimit);
         
@@ -119,12 +117,17 @@ onSnapshot(postsQuery, (snapshot) => {
              commentsHTML += `<button style="background: none; border: none; color: #8b5cf6; cursor: pointer; padding: 5px 0; font-size: 13px; font-weight: bold;">View all ${commentsList.length} comments...</button>`;
         }
 
+        // Check if current user has already liked the post
+        const likedBy = postData.likedBy || [];
+        const isLiked = currentUser && likedBy.includes(currentUser.uid);
+        const heartColor = isLiked ? "red" : "#333";
+
         postElement.innerHTML = `
             <h4>${escapeHTML(displayName)} <span style="font-size: 13px; color: gray; font-weight: normal;">(${escapeHTML(displayBadge)})</span></h4>
             <p>${escapeHTML(postData.content)}</p>
             
             <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <button class="like-btn" style="background: #f0f2f5; color: #333; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                <button class="like-btn" style="background: #f0f2f5; color: ${heartColor}; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-weight: bold;">
                     ❤️ ${postData.likes || 0}
                 </button>
                 <button class="toggle-comment-btn" style="background: #f0f2f5; color: #333; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-weight: bold;">
@@ -132,7 +135,6 @@ onSnapshot(postsQuery, (snapshot) => {
                 </button>
             </div>
 
-            <!-- Comments Section (Hidden by default) -->
             <div class="comments-section" style="display: none; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
                 ${commentsHTML}
                 <div style="display: flex; margin-top: 10px;">
@@ -154,12 +156,26 @@ onSnapshot(postsQuery, (snapshot) => {
             }
         });
         
-        // Like Button Logic
+        // --- NAYA LIKE LOGIC ---
         const likeBtn = postElement.querySelector('.like-btn');
         likeBtn.addEventListener('click', async function() {
-            await updateDoc(doc(db, "campus_posts", postId), {
-                likes: increment(1)
-            });
+            if (!currentUser) return;
+            
+            const postRef = doc(db, "campus_posts", postId);
+            
+            if (isLiked) {
+                // User ne pehle hi like kiya hai -> Unlike karo
+                await updateDoc(postRef, {
+                    likedBy: arrayRemove(currentUser.uid),
+                    likes: increment(-1)
+                });
+            } else {
+                // User ne like nahi kiya hai -> Like karo
+                await updateDoc(postRef, {
+                    likedBy: arrayUnion(currentUser.uid),
+                    likes: increment(1)
+                });
+            }
         });
 
         // Comment Button Logic
@@ -184,8 +200,8 @@ onSnapshot(postsQuery, (snapshot) => {
     });
 });
 
-// --- 📊 TRUE DAILY POLL LOGIC ---
-
+// --- TRUE DAILY POLL LOGIC ---
+// (Baaki ka poll logic same rahega)
 function getTodayDateString() {
     const today = new Date();
     const yyyy = today.getFullYear();
