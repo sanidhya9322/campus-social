@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDzJgmqfAJldLXuwRLjdHbhRi7Xi0I9WGU",
@@ -12,12 +12,14 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
 
 const loginBtn = document.getElementById('login-btn');
 const signupBtn = document.getElementById('signup-btn');
+const googleBtn = document.getElementById('google-login-btn');
 const emailInput = document.getElementById('email-input');
 const passwordInput = document.getElementById('password-input');
-const authMsg = document.getElementById('auth-msg'); // Naya Message element
+const authMsg = document.getElementById('auth-msg');
 
 // Helper function to show messages
 function showMessage(text, isError = true) {
@@ -29,16 +31,17 @@ function showMessage(text, isError = true) {
 function setButtonsState(disabled, text1, text2) {
     loginBtn.disabled = disabled;
     signupBtn.disabled = disabled;
+    if (googleBtn) googleBtn.disabled = disabled;
     if (text1) loginBtn.innerText = text1;
     if (text2) signupBtn.innerText = text2;
 }
 
-// NAYA ACCOUNT BANANE KE LIYE (SIGN UP)
+// SIGN UP
 signupBtn.addEventListener('click', () => {
-    const email = emailInput.value;
-    const password = passwordInput.value;
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
 
-    authMsg.style.display = 'none'; // Clear old message
+    authMsg.style.display = 'none';
 
     if (!email || !password) {
         return showMessage("Please enter both email and password!");
@@ -62,12 +65,12 @@ signupBtn.addEventListener('click', () => {
       });
 });
 
-// PURANE ACCOUNT SE LOGIN KARNE KE LIYE (LOGIN)
+// LOGIN
 loginBtn.addEventListener('click', () => {
-    const email = emailInput.value;
-    const password = passwordInput.value;
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
 
-    authMsg.style.display = 'none'; // Clear old message
+    authMsg.style.display = 'none';
 
     if (!email || !password) {
         return showMessage("Please enter both email and password!");
@@ -83,7 +86,27 @@ loginBtn.addEventListener('click', () => {
           }, 1000);
       })
       .catch((error) => {
-          showMessage("Login Error: Incorrect email or password.");
+          showMessage("Login Error: " + error.message.replace("Firebase: ", ""));
           setButtonsState(false, "Login", "Sign Up");
       });
 });
+
+// GOOGLE LOGIN
+if (googleBtn) {
+    googleBtn.addEventListener('click', () => {
+        authMsg.style.display = 'none';
+        setButtonsState(true, "Connecting...", "Connecting...");
+
+        signInWithPopup(auth, provider)
+            .then((result) => {
+                showMessage("Google login successful! Redirecting...", false);
+                setTimeout(() => {
+                    window.location.href = "dashboard.html";
+                }, 1000);
+            })
+            .catch((error) => {
+                showMessage("Google Login Error: " + error.message.replace("Firebase: ", ""));
+                setButtonsState(false, "Login", "Sign Up");
+            });
+    });
+}

@@ -5,17 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Campus Social - Student Login</title>
     <link rel="stylesheet" href="style.css">
-<!-- Browser Tab Favicon -->
-<link rel="icon" type="image/png" href="/icons/favicon.png">
+    <link rel="icon" type="image/png" href="/icons/favicon.png">
 
-<!-- iPhone/iPad App Icon Support -->
-<link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
 
     <div class="landing-container">
-        <!-- Left Side: Branding & Features -->
         <div class="branding-section">
             <h1 style="color: #2563eb; font-size: 3.5rem; margin-bottom: 10px;">Campus Social 🚀</h1>
             <p style="font-size: 1.5rem; color: #333; margin-bottom: 20px;">Connect with your college. No fake profiles, just real students.</p>
@@ -27,7 +24,6 @@
             </ul>
         </div>
 
-        <!-- Right Side: Login Box -->
         <div class="login-box">
             <h2 style="margin-top: 0; color: #333;">Student Access</h2>
             
@@ -41,6 +37,13 @@
             <div style="display: flex; gap: 10px; margin-top: 20px;">
                 <button id="login-btn" style="flex: 1; padding: 12px; background-color: #2563eb; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Login</button>
                 <button id="signup-btn" style="flex: 1; padding: 12px; background-color: #10b981; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Sign Up</button>
+            </div>
+
+            <div style="margin-top: 15px;">
+                <button id="google-login-btn" class="google-btn" style="width: 100%; padding: 12px; background-color: #ffffff; color: #333; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" style="vertical-align: middle; margin-right: 8px;">
+                    Continue with Google
+                </button>
             </div>
         </div>
     </div>
