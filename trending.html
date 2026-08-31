@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trending on Campus - Campus Social</title>
+    <link rel="stylesheet" href="dashboard.css">
+<!-- Browser Tab Favicon -->
+<link rel="icon" type="image/png" href="/icons/favicon.png">
+
+<!-- iPhone/iPad App Icon Support -->
+<link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <nav class="navbar">
+        <h2>Campus Social 🔥</h2>
+        <div>
+            <button onclick="window.location.href='dashboard.html'" style="background: #10b981; margin-right: 10px; cursor: pointer;">Back to Feed</button>
+            <button id="logout-btn" style="cursor: pointer;">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        
+        <!-- 1. LEFT COLUMN: Universal Sidebar Navigation -->
+        <aside class="sidebar">
+            <ul>
+                <li onclick="window.location.href='dashboard.html'" style="cursor: pointer;">🏠 Home</li>
+                <li onclick="window.location.href='trending.html'" style="background: #f0f2f5; cursor: pointer;">🔥 Trending</li>
+                <li onclick="window.location.href='clubs.html'" style="cursor: pointer;">👥 Clubs & Communities</li>
+                <li onclick="window.location.href='marketplace.html'" style="cursor: pointer;">🛒 Marketplace</li>
+                <li onclick="window.location.href='events.html'" style="cursor: pointer;">📅 Campus Events</li>
+                <li onclick="window.location.href='match.html'" style="cursor: pointer;">🎲 Daily Match</li>
+                <li onclick="window.location.href='myprofile.html'" style="cursor: pointer;">👤 My Profile</li>
+            </ul>
+        </aside>
+
+        <!-- 2. MIDDLE COLUMN: Main Feed for Trending -->
+        <main class="feed">
+            <div style="background: linear-gradient(135deg, #f43f5e, #fb923c); padding: 20px; border-radius: 12px; color: white; margin-bottom: 20px; text-align: center;">
+                <h2 style="margin: 0;">Top Campus Discussions</h2>
+                <p style="margin: 5px 0 0 0; opacity: 0.9;">The most liked posts right now.</p>
+            </div>
+
+            <div id="trending-posts"></div>
+        </main>
+
+        <!-- 3. RIGHT COLUMN: Widgets & Discovery -->
+        <aside class="right-sidebar">
+            
+            <div class="widget" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border-left: 5px solid #fb923c;">
+                <h3 style="margin-top: 0; color: #f43f5e;">📈 How Trending Works</h3>
+                <p style="font-size: 14px; color: #555;">Posts with the highest number of likes automatically climb to the top of this page. Support your peers by liking their posts on the main home feed!</p>
+            </div>
+
+        </aside>
+
+    </div>
+
+    <script type="module" src="trending.js"></script>
+    <script src="pwa-engine.js"></script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+/* Global Reset */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f0f2f5;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* Desktop Split-Screen Layout */
+.landing-container {
+    display: flex;
+    align-items: center;
+    max-width: 1000px;
+    width: 100%;
+    gap: 50px;
+    padding: 20px;
+}
+
+.branding-section {
+    flex: 1;
+}
+
+.branding-section ul li {
+    margin-bottom: 12px;
+}
+
+/* Login Box Styling */
+.login-box {
+    flex: 1;
+    background-color: white;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Input Fields */
+input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.2s;
+}
+
+input:focus {
+    outline: none;
+    border-color: #2563eb;
+}
+
+/* Button Animations */
+button {
+    transition: opacity 0.2s, transform 0.1s;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+/* Mobile Responsive Design */
+@media screen and (max-width: 768px) {
+    .landing-container {
+        flex-direction: column;
+        text-align: center;
+        gap: 30px;
+        margin-top: 20px;
+    }
+
+    .branding-section ul {
+        display: inline-block;
+        text-align: left; /* Keep bullets readable */
+    }
+
+    .login-box {
+        width: 100%;
+        max-width: 400px;
+        padding: 30px 20px;
+    }
+}

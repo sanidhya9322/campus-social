@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Profile - Campus Social</title>
+    <link rel="stylesheet" href="style.css">
+<!-- Browser Tab Favicon -->
+<link rel="icon" type="image/png" href="/icons/favicon.png">
+
+<!-- iPhone/iPad App Icon Support -->
+<link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body style="background: linear-gradient(135deg, #f0f2f5, #e0e7ff);"> <!-- Special background for setup page -->
+
+    <div class="landing-container" style="justify-content: center;">
+        
+        <!-- Centered Profile Box -->
+        <div class="login-box" style="max-width: 450px; width: 100%; text-align: center; align-items: center;">
+            <h2 style="margin-top: 0; color: #2563eb; font-size: 28px;">Complete Profile 🎓</h2>
+            <p style="color: #555; margin-bottom: 25px;">Let your campus know who you are before you join the feed.</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 15px; width: 100%;">
+                <input type="text" id="name" placeholder="Full Name (e.g. Rahul Sharma)" style="text-align: center;">
+                <input type="text" id="branch" placeholder="Branch (e.g. CSE, Mechanical)" style="text-align: center;">
+                <input type="text" id="year" placeholder="Year (e.g. 1st Year, 4th Year)" style="text-align: center;">
+            </div>
+            
+            <!-- Error/Success Message Container -->
+            <p id="profile-msg" style="color: #e11d48; margin-top: 15px; font-size: 14px; display: none; font-weight: bold;"></p>
+
+            <button id="save-btn" style="width: 100%; margin-top: 20px; padding: 12px; background-color: #10b981; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Save & Enter Campus</button>
+        </div>
+        
+    </div>
+
+    <script type="module" src="profile.js"></script>
+    <script src="pwa-engine.js"></script>
+</body>
+</html>

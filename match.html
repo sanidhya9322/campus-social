@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Match - Campus Social</title>
+    <link rel="stylesheet" href="dashboard.css">
+<!-- Browser Tab Favicon -->
+<link rel="icon" type="image/png" href="/icons/favicon.png">
+
+<!-- iPhone/iPad App Icon Support -->
+<link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <nav class="navbar">
+        <h2>Campus Social 🎲</h2>
+        <div>
+            <button onclick="window.location.href='dashboard.html'" style="background: #10b981; margin-right: 10px; cursor: pointer;">Back to Home</button>
+            <button id="logout-btn" style="cursor: pointer;">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        
+        <!-- 1. LEFT COLUMN: Universal Sidebar Navigation -->
+        <aside class="sidebar">
+            <ul>
+                <li onclick="window.location.href='dashboard.html'" style="cursor: pointer;">🏠 Home</li>
+                <li onclick="window.location.href='trending.html'" style="cursor: pointer;">🔥 Trending</li>
+                <li onclick="window.location.href='clubs.html'" style="cursor: pointer;">👥 Clubs & Communities</li>
+                <li onclick="window.location.href='marketplace.html'" style="cursor: pointer;">🛒 Marketplace</li>
+                <li onclick="window.location.href='events.html'" style="cursor: pointer;">📅 Campus Events</li>
+                <li onclick="window.location.href='match.html'" style="background: #f0f2f5; cursor: pointer;">🎲 Daily Match</li>
+                <li onclick="window.location.href='myprofile.html'" style="cursor: pointer;">👤 My Profile</li>
+            </ul>
+        </aside>
+
+        <!-- 2. MIDDLE COLUMN: Main Match Area -->
+        <main class="feed">
+            <div class="create-post" style="text-align: center; padding: 40px; border-top: 5px solid #3b82f6;">
+                <h2 style="margin-top: 0; color: #3b82f6;">Meet Someone New Today</h2>
+                <p style="color: gray; margin-bottom: 20px;">Expand your campus network. We will randomly match you with another student.</p>
+                <button id="find-match-btn" style="background: #3b82f6; font-size: 18px; padding: 15px 30px; cursor: pointer; border-radius: 8px;">🎲 Roll the Dice</button>
+            </div>
+            
+            <!-- Result Container -->
+            <div id="match-result"></div>
+        </main>
+
+        <!-- 3. RIGHT COLUMN: Widgets & Discovery -->
+        <aside class="right-sidebar">
+            
+            <div class="widget" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border-left: 5px solid #3b82f6;">
+                <h3 style="margin-top: 0; color: #3b82f6;">🤝 How it Works</h3>
+                <p style="font-size: 14px; color: #555;">Hit the dice to instantly get matched with a random verified student from your campus. Say hi, discuss projects, or grab a coffee!</p>
+            </div>
+
+        </aside>
+
+    </div>
+
+    <script type="module" src="match.js"></script>
+    <script src="pwa-engine.js"></script>
+</body>
+</html>
