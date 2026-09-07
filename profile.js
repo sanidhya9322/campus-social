@@ -1,19 +1,25 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, updateDoc, doc, getDoc, arrayUnion, arrayRemove, setDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+// Analytics CDN Import
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-analytics.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDzJgmqfAJldLXuwRLjdHbhRi7Xi0I9WGU",
     authDomain: "campus-socia.firebaseapp.com",
+    databaseURL: "https://campus-socia-default-rtdb.firebaseio.com",
     projectId: "campus-socia",
     storageBucket: "campus-socia.firebasestorage.app",
-    messagingSenderId: "72432391692",
-    appId: "1:72432391692:web:d97a1701b482a0ccf758e1"
+    messagingSenderId: "72432391092",
+    appId: "1:72432391092:web:d97a1701b402a0ccf758e1",
+    measurementId: "G-BTNMN5KHZL" // Tumhara live Tracking ID
 };
 
+// Initialize Firebase Core Services
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+const analytics = getAnalytics(app);
 
 let currentUser = null;
 
