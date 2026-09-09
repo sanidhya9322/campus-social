@@ -61,6 +61,7 @@ postBtn.addEventListener('click', async () => {
             title: title,
             price: Number(price),
             posterName: userProfile.fullName,
+            authorId: currentUser.uid,
             posterEmail: userProfile.email,
             timestamp: new Date()
         });

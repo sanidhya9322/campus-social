@@ -92,6 +92,7 @@ postBtn.addEventListener('click', async () => {
             clubName: currentClub,
             content: text,
             authorName: userProfile.fullName,
+            authorId: currentUser.uid,
             timestamp: new Date()
         });
         

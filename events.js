@@ -74,6 +74,7 @@ createBtn.addEventListener('click', async () => {
             date: date,
             location: location,
             hostName: userProfile.fullName,
+            authorId: currentUser.uid,
             attendees: [], 
             timestamp: new Date()
         });

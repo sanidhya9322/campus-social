@@ -72,6 +72,7 @@ listBtn.addEventListener('click', async () => {
             name: itemName,
             price: Number(itemPrice),
             sellerName: userProfile.fullName,
+            authorId: currentUser.uid,
             sellerContact: userProfile.email,
             timestamp: new Date()
         });
