@@ -1,7 +1,12 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, updateDoc, doc, getDoc, arrayUnion, arrayRemove, setDoc,getDocs, increment } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { 
+    getFirestore, 
+    collection, 
+    getDocs, 
+    query, 
+    limit 
+} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-// Analytics CDN Import
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-analytics.js";
 
 const firebaseConfig = {
@@ -12,7 +17,7 @@ const firebaseConfig = {
     storageBucket: "campus-socia.firebasestorage.app",
     messagingSenderId: "72432391092",
     appId: "1:72432391092:web:d97a1701b402a0ccf758e1",
-    measurementId: "G-BTNMN5KHZL" // Tumhara live Tracking ID
+    measurementId: "G-BTNMN5KHZL"
 };
 
 // Initialize Firebase Core Services
@@ -36,7 +41,7 @@ onAuthStateChanged(auth, (user) => {
     else currentUser = user;
 });
 
-document.getElementById('logout-btn').addEventListener('click', () => {
+document.getElementById('logout-btn')?.addEventListener('click', () => {
     signOut(auth).then(() => window.location.href = "index.html");
 });
 
@@ -44,14 +49,21 @@ const matchBtn = document.getElementById('find-match-btn');
 const matchResult = document.getElementById('match-result');
 
 matchBtn.addEventListener('click', async () => {
+    if (!currentUser) return;
+
     matchBtn.innerText = "🎲 Searching campus...";
     matchBtn.disabled = true;
     
     try {
-        const usersSnapshot = await getDocs(collection(db, "users"));
+        const usersRef = collection(db, "users");
+        
+        // Performance Optimization: Restrict fetch to limit full database reads
+        const q = query(usersRef, limit(50));
+        const usersSnapshot = await getDocs(q);
+        
         let otherUsers = [];
         
-        // Tumhare alawa baaki sabko list mein daalo
+        // Current user ko exclude karna
         usersSnapshot.forEach((doc) => {
             if (doc.id !== currentUser.uid) {
                 otherUsers.push(doc.data());
@@ -68,18 +80,36 @@ matchBtn.addEventListener('click', async () => {
         // Random selection formula
         const randomUser = otherUsers[Math.floor(Math.random() * otherUsers.length)];
         
-        // Mailto link for direct contact
-        const mailtoLink = `mailto:${escapeHTML(randomUser.email)}?subject=Hey! We matched on Campus Social 🎲`;
+        // Email formats prepare karna
+        const userEmail = escapeHTML(randomUser.email || "");
+        const fullName = escapeHTML(randomUser.fullName || "Anonymous Student");
+        const branch = escapeHTML(randomUser.branch || "N/A");
+        const year = escapeHTML(randomUser.year || "N/A");
+        const subject = encodeURIComponent("Hey! We matched on Campus Social 🎲");
         
-        // Display result
+        // Mobile ke liye native app link
+        const mailtoLink = `mailto:${userEmail}?subject=${subject}`;
+        
+        // Desktop ke liye direct Gmail web link
+        const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&to=${userEmail}&su=${subject}`;
+        
+        // Display result with dual buttons
         matchResult.innerHTML = `
-            <div class="post" style="text-align: center; border: 2px dashed #3b82f6; margin-top: 20px; padding: 30px;">
+            <div class="post" style="text-align: center; border: 2px dashed #3b82f6; margin-top: 20px; padding: 30px; border-radius: 12px;">
                 <h3 style="color: #3b82f6; margin-top: 0;">🎉 You Matched With!</h3>
-                <h1 style="margin: 10px 0; color: #1f2937;">${escapeHTML(randomUser.fullName)}</h1>
-                <p style="font-size: 16px; color: #555;"><strong>Branch:</strong> ${escapeHTML(randomUser.branch)} | <strong>Year:</strong> ${escapeHTML(randomUser.year)}</p>
-                <a href="${mailtoLink}" style="display: inline-block; background: #10b981; color: white; text-decoration: none; padding: 12px 25px; border-radius: 6px; margin-top: 15px; font-weight: bold;">Say Hi 👋</a>
+                <h1 style="margin: 10px 0; color: #1f2937;">${fullName}</h1>
+                <p style="font-size: 16px; color: #555;"><strong>Branch:</strong> ${branch} | <strong>Year:</strong> ${year}</p>
+                
+                <p style="font-size: 14px; color: gray; margin-bottom: 5px;">${userEmail}</p>
+                
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px; flex-wrap: wrap;">
+                    <a href="${gmailLink}" target="_blank" style="background: #ea4335; color: white; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Open Gmail Web ✉️</a>
+                    
+                    <a href="${mailtoLink}" style="background: #10b981; color: white; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Email App 📱</a>
+                </div>
             </div>
         `;
+        
         matchBtn.innerText = "🎲 Find Another Match";
         matchBtn.disabled = false;
 
