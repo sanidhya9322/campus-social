@@ -45,12 +45,31 @@ function escapeHTML(str) {
     return div.innerHTML;
 }
 
+// ----------------------------------------------------
+// NAYA LOGIC: Cooldown check function (60 Seconds)
+// ----------------------------------------------------
+function canUserPost(postType = 'general') {
+    const COOLDOWN_TIME = 60000; // 60 seconds (1 minute)
+    const lastPostTime = localStorage.getItem(`last_post_time_${postType}`);
+    
+    if (lastPostTime && (Date.now() - lastPostTime < COOLDOWN_TIME)) {
+        const remainingSeconds = Math.ceil((COOLDOWN_TIME - (Date.now() - lastPostTime)) / 1000);
+        alert(`⏳ Hold on! Please wait ${remainingSeconds} seconds before posting another ${postType}.`);
+        return false;
+    }
+    return true;
+}
+
 document.getElementById('logout-btn').addEventListener('click', () => {
     signOut(auth).then(() => window.location.href = "index.html");
 });
 
 const postBtn = document.getElementById('post-gig-btn');
 postBtn.addEventListener('click', async () => {
+
+    // 🔴 NAYA LOGIC: Check Spam Cooldown FIRST for 'gig'
+    if (!canUserPost('gig')) return;
+
     const title = document.getElementById('gig-title').value.trim();
     const price = document.getElementById('gig-price').value.trim();
 
@@ -73,6 +92,9 @@ postBtn.addEventListener('click', async () => {
             timestamp: new Date()
         });
         
+        // 🔴 NAYA LOGIC: Gig successful hone ke baad timer set karo
+        localStorage.setItem('last_post_time_gig', Date.now());
+
         document.getElementById('gig-title').value = "";
         document.getElementById('gig-price').value = "";
         postBtn.innerText = "✅ Gig Posted!";

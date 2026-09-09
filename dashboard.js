@@ -21,7 +21,6 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const analytics = getAnalytics(app);
 
-// Tumhara existing logic yahan se continue hoga...
 const postForm = document.getElementById('create-post-form'); 
 const postInput = document.getElementById('post-input');
 const feedContainer = document.getElementById('live-posts');
@@ -36,6 +35,21 @@ function escapeHTML(str) {
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+}
+
+// ----------------------------------------------------
+// NAYA LOGIC: Cooldown check function (60 Seconds)
+// ----------------------------------------------------
+function canUserPost(postType = 'general') {
+    const COOLDOWN_TIME = 60000; // 60 seconds (1 minute)
+    const lastPostTime = localStorage.getItem(`last_post_time_${postType}`);
+    
+    if (lastPostTime && (Date.now() - lastPostTime < COOLDOWN_TIME)) {
+        const remainingSeconds = Math.ceil((COOLDOWN_TIME - (Date.now() - lastPostTime)) / 1000);
+        alert(`⏳ Hold on! Please wait ${remainingSeconds} seconds before posting again.`);
+        return false;
+    }
+    return true;
 }
 
 // 1. Check Login
@@ -62,6 +76,9 @@ logoutBtn.addEventListener('click', function() {
 postForm.addEventListener('submit', async function(e) {
     e.preventDefault();
 
+    // 🔴 NAYA LOGIC: Check Spam Cooldown FIRST
+    if (!canUserPost('feed')) return; 
+
     const text = postInput.value;
     if (text.trim() === "" || !userProfile) return;
 
@@ -77,11 +94,15 @@ postForm.addEventListener('submit', async function(e) {
             authorBranch: userProfile.branch,
             authorYear: userProfile.year,
             likes: 0,
-            likedBy: [], // NAYA LOGIC: Empty array initialize kiya
+            likedBy: [], 
             comments: [], 
             timestamp: new Date()
         });
         postInput.value = ""; 
+
+        // 🔴 NAYA LOGIC: Post successful hone ke baad timer set kar do
+        localStorage.setItem('last_post_time_feed', Date.now());
+
     } catch (error) {
         alert("Error saving post: " + error.message);
     } finally {
@@ -90,7 +111,7 @@ postForm.addEventListener('submit', async function(e) {
     }
 });
 
-// 4. Live Feed with New Like Logic
+// 4. Live Feed with Like & Comment Logic
 const postsQuery = query(collection(db, "campus_posts"), orderBy("timestamp", "desc"));
 
 onSnapshot(postsQuery, (snapshot) => {
@@ -124,7 +145,6 @@ onSnapshot(postsQuery, (snapshot) => {
              commentsHTML += `<button style="background: none; border: none; color: #8b5cf6; cursor: pointer; padding: 5px 0; font-size: 13px; font-weight: bold;">View all ${commentsList.length} comments...</button>`;
         }
 
-        // Check if current user has already liked the post
         const likedBy = postData.likedBy || [];
         const isLiked = currentUser && likedBy.includes(currentUser.uid);
         const heartColor = isLiked ? "red" : "#333";
@@ -140,6 +160,10 @@ onSnapshot(postsQuery, (snapshot) => {
                 <button class="toggle-comment-btn" style="background: #f0f2f5; color: #333; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-weight: bold;">
                     💬 ${commentsList.length}
                 </button>
+                
+                <button onclick="window.reportPost('${doc.id}', 'campus_posts')" style="background: none; border: none; color: #e11d48; cursor: pointer; font-size: 13px; font-weight: bold; margin-left: 15px;">
+               ⚠️ Report
+                </button>
             </div>
 
             <div class="comments-section" style="display: none; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
@@ -151,7 +175,6 @@ onSnapshot(postsQuery, (snapshot) => {
             </div>
         `;
         
-        // Hide/Show Toggle Logic
         const toggleBtn = postElement.querySelector('.toggle-comment-btn');
         const commentsSection = postElement.querySelector('.comments-section');
         
@@ -163,7 +186,6 @@ onSnapshot(postsQuery, (snapshot) => {
             }
         });
         
-        // --- NAYA LIKE LOGIC ---
         const likeBtn = postElement.querySelector('.like-btn');
         likeBtn.addEventListener('click', async function() {
             if (!currentUser) return;
@@ -171,13 +193,11 @@ onSnapshot(postsQuery, (snapshot) => {
             const postRef = doc(db, "campus_posts", postId);
             
             if (isLiked) {
-                // User ne pehle hi like kiya hai -> Unlike karo
                 await updateDoc(postRef, {
                     likedBy: arrayRemove(currentUser.uid),
                     likes: increment(-1)
                 });
             } else {
-                // User ne like nahi kiya hai -> Like karo
                 await updateDoc(postRef, {
                     likedBy: arrayUnion(currentUser.uid),
                     likes: increment(1)
@@ -185,7 +205,6 @@ onSnapshot(postsQuery, (snapshot) => {
             }
         });
 
-        // Comment Button Logic
         const commentBtn = postElement.querySelector('.comment-btn');
         const commentInput = postElement.querySelector('.comment-input');
         
@@ -208,7 +227,6 @@ onSnapshot(postsQuery, (snapshot) => {
 });
 
 // --- TRUE DAILY POLL LOGIC ---
-// (Baaki ka poll logic same rahega)
 function getTodayDateString() {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -277,3 +295,23 @@ async function handleVote(option) {
 
 document.getElementById('vote-a-btn').addEventListener('click', () => handleVote('A'));
 document.getElementById('vote-b-btn').addEventListener('click', () => handleVote('B'));
+
+// Global Report Function
+window.reportPost = async (postId, collectionName) => {
+    const confirmReport = confirm("Do you want to report this post to the admins?");
+    if (!confirmReport) return;
+
+    try {
+        await addDoc(collection(db, "reported_content"), {
+            reportedPostId: postId,
+            reportedFromCollection: collectionName,
+            reportedBy: currentUser.uid,
+            timestamp: new Date()
+        });
+
+        alert("✅ Post reported successfully. Admins will review it.");
+    } catch (error) {
+        console.error("Error reporting post:", error);
+        alert("❌ Could not report the post. Try again.");
+    }
+};

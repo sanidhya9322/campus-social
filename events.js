@@ -33,6 +33,21 @@ function escapeHTML(str) {
     return div.innerHTML;
 }
 
+// ----------------------------------------------------
+// NAYA LOGIC: Cooldown check function (60 Seconds)
+// ----------------------------------------------------
+function canUserPost(postType = 'general') {
+    const COOLDOWN_TIME = 60000; // 60 seconds (1 minute)
+    const lastPostTime = localStorage.getItem(`last_post_time_${postType}`);
+    
+    if (lastPostTime && (Date.now() - lastPostTime < COOLDOWN_TIME)) {
+        const remainingSeconds = Math.ceil((COOLDOWN_TIME - (Date.now() - lastPostTime)) / 1000);
+        alert(`⏳ Hold on! Please wait ${remainingSeconds} seconds before creating another ${postType}.`);
+        return false;
+    }
+    return true;
+}
+
 // Strict Auth Check & Initial Data Loading
 onAuthStateChanged(auth, async (user) => {
     if (!user) {
@@ -60,9 +75,13 @@ document.getElementById('logout-btn').addEventListener('click', () => {
     signOut(auth).then(() => window.location.href = "index.html");
 });
 
-// Create Event (With Smart Button UI)
+// Create Event (With Smart Button UI & Cooldown Logic)
 const createBtn = document.getElementById('create-event-btn');
 createBtn.addEventListener('click', async () => {
+
+    // 🔴 NAYA LOGIC: Check Spam Cooldown FIRST for 'event'
+    if (!canUserPost('event')) return;
+
     const title = document.getElementById('event-title').value.trim();
     const date = document.getElementById('event-date').value;
     const location = document.getElementById('event-location').value.trim();
@@ -92,6 +111,9 @@ createBtn.addEventListener('click', async () => {
             timestamp: new Date()
         });
         
+        // 🔴 NAYA LOGIC: Event successful hone ke baad timer set karo
+        localStorage.setItem('last_post_time_event', Date.now());
+
         document.getElementById('event-title').value = "";
         document.getElementById('event-date').value = "";
         document.getElementById('event-location').value = "";

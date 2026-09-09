@@ -62,3 +62,22 @@ function injectInstallModal() {
         localStorage.setItem('pwa-prompt-dismissed', Date.now());
     });
 }
+
+// Global Report Function
+window.reportPost = async (postId, collectionName) => {
+    const confirmReport = confirm("Do you want to report this post to the admins?");
+    if (!confirmReport) return;
+
+    try {
+        await addDoc(collection(db, "reported_content"), {
+            reportedPostId: postId,
+            reportedFromCollection: collectionName,
+            reportedBy: currentUser.uid, // currentUser variable upar defined hona chahiye
+            timestamp: new Date()
+        });
+        alert("✅ Post reported successfully. Admins will review it.");
+    } catch (error) {
+        console.error("Error reporting post:", error);
+        alert("❌ Could not report the post. Try again.");
+    }
+};
