@@ -5,19 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Campus Marketplace - Campus Social</title>
     <link rel="stylesheet" href="dashboard.css">
-<!-- Browser Tab Favicon -->
-<link rel="icon" type="image/png" href="/icons/favicon.png">
-
-<!-- iPhone/iPad App Icon Support -->
-<link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    
+    <!-- Browser Tab Favicon -->
+    <link rel="icon" type="image/png" href="/icons/favicon.png">
+    <!-- iPhone/iPad App Icon Support -->
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
     <nav class="navbar">
         <h2>Campus Social 🛒</h2>
-        <div>
-            <button onclick="window.location.href='dashboard.html'" style="background: #10b981; margin-right: 10px; cursor: pointer;">Back to Feed</button>
-            <button id="logout-btn" style="cursor: pointer;">Logout</button>
+        <div style="display: flex; gap: 12px;">
+            <button onclick="window.location.href='dashboard.html'" style="background-color: var(--text-muted);">Back to Home</button>
+            <button id="logout-btn">Logout</button>
         </div>
     </nav>
 
@@ -26,37 +26,39 @@
         <!-- 1. LEFT COLUMN: Universal Sidebar Navigation -->
         <aside class="sidebar">
             <ul>
-                <li onclick="window.location.href='dashboard.html'" style="cursor: pointer;">🏠 Home</li>
-                <li onclick="window.location.href='trending.html'" style="cursor: pointer;">🔥 Trending</li>
-                <li onclick="window.location.href='clubs.html'" style="cursor: pointer;">👥 Clubs & Communities</li>
-                <li onclick="window.location.href='marketplace.html'" style="background: #f0f2f5; cursor: pointer;">🛒 Marketplace</li>
-                <li onclick="window.location.href='events.html'" style="cursor: pointer;">📅 Campus Events</li>
-                <li onclick="window.location.href='match.html'" style="cursor: pointer;">🎲 Daily Match</li>
-                <li onclick="window.location.href='myprofile.html'" style="cursor: pointer;">👤 My Profile</li>
+                <li onclick="window.location.href='dashboard.html'">🏠 Home</li>
+                <li onclick="window.location.href='trending.html'">🔥 Trending</li>
+                <li onclick="window.location.href='clubs.html'">👥 Clubs & Communities</li>
+                <li onclick="window.location.href='marketplace.html'" style="color: var(--primary); background: var(--bg-color);">🛒 Marketplace</li>
+                <li onclick="window.location.href='events.html'">📅 Campus Events</li>
+                <li onclick="window.location.href='match.html'">🎲 Daily Match</li>
+                <li onclick="window.location.href='gigs.html'">💼 Campus Gigs</li>
+                <li onclick="window.location.href='myprofile.html'">👤 My Profile</li>
             </ul>
         </aside>
 
         <!-- 2. MIDDLE COLUMN: Main Marketplace Area -->
         <main class="feed">
-            <div class="create-post">
-                <h3 style="margin-top: 0; color: #10b981;">Sell an Item</h3>
-                <input type="text" id="item-name" placeholder="Item Name (e.g., Engineering Maths Book)" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-family: inherit;">
-                <input type="number" id="item-price" placeholder="Price (₹)" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-family: inherit;">
-                <button id="list-item-btn" style="background: #10b981; width: 100%; cursor: pointer;">List Item</button>
+            <div class="create-post modern-card" style="border-top: 5px solid #10b981;">
+                <h3 style="margin-top: 0; color: #10b981; font-weight: 700;">Sell an Item</h3>
+                
+                <input type="text" id="item-name" placeholder="Item Name (e.g., Engineering Maths Book)" style="width: 100%; padding: 14px 16px; margin-bottom: 12px; border: 1px solid var(--border); border-radius: var(--radius-md); box-sizing: border-box; background-color: var(--bg-color); outline: none; font-size: 15px; font-family: inherit;">
+                
+                <input type="number" id="item-price" placeholder="Price (₹)" style="width: 100%; padding: 14px 16px; margin-bottom: 20px; border: 1px solid var(--border); border-radius: var(--radius-md); box-sizing: border-box; background-color: var(--bg-color); outline: none; font-size: 15px; font-family: inherit;">
+                
+                <button id="list-item-btn" style="background-color: #10b981; width: 100%;">List Item</button>
             </div>
 
-            <h3 style="margin-top: 20px; color: #333;">Recent Listings</h3>
-            <div id="marketplace-listings"></div>
+            <h3 style="margin-top: 20px; color: var(--text-main); font-weight: 700;">Recent Listings</h3>
+            <div id="marketplace-listings" style="display: flex; flex-direction: column; gap: 15px;"></div>
         </main>
 
         <!-- 3. RIGHT COLUMN: Widgets & Discovery -->
         <aside class="right-sidebar">
-            
-            <div class="widget" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border-left: 5px solid #10b981;">
-                <h3 style="margin-top: 0; color: #10b981;">🛡️ Safe Trading</h3>
-                <p style="font-size: 14px; color: #555;">Always meet in public campus areas (like the canteen or library) when exchanging items and money. Verify the item condition before paying.</p>
+            <div class="widget modern-card" style="border-left: 5px solid #10b981;">
+                <h3 style="margin-top: 0; color: #10b981; font-weight: 700;">🛡️ Safe Trading</h3>
+                <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6;">Always meet in public campus areas (like the canteen or library) when exchanging items and money. Verify the item condition before paying.</p>
             </div>
-
         </aside>
 
     </div>

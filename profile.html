@@ -4,33 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Setup Profile - Campus Social</title>
+    <link rel="stylesheet" href="dashboard.css"> <!-- Connected to new design system -->
     <link rel="stylesheet" href="style.css">
-<!-- Browser Tab Favicon -->
-<link rel="icon" type="image/png" href="/icons/favicon.png">
-
-<!-- iPhone/iPad App Icon Support -->
-<link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    
+    <!-- Browser Tab Favicon -->
+    <link rel="icon" type="image/png" href="/icons/favicon.png">
+    <!-- iPhone/iPad App Icon Support -->
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
     <link rel="manifest" href="manifest.json">
 </head>
-<body style="background: linear-gradient(135deg, #f0f2f5, #e0e7ff);"> <!-- Special background for setup page -->
+<body style="display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: linear-gradient(135deg, var(--bg-color), #e0e7ff);"> 
 
-    <div class="landing-container" style="justify-content: center;">
+    <div class="landing-container" style="display: flex; justify-content: center; width: 100%; padding: 20px;">
         
         <!-- Centered Profile Box -->
-        <div class="login-box" style="max-width: 450px; width: 100%; text-align: center; align-items: center;">
-            <h2 style="margin-top: 0; color: #2563eb; font-size: 28px;">Complete Profile 🎓</h2>
-            <p style="color: #555; margin-bottom: 25px;">Let your campus know who you are before you join the feed.</p>
+        <div class="login-box modern-card" style="max-width: 450px; width: 100%; text-align: center; padding: 40px; box-sizing: border-box;">
+            <h2 style="margin-top: 0; color: var(--primary); font-size: 28px; font-weight: 700;">Complete Profile 🎓</h2>
+            <p style="color: var(--text-muted); margin-bottom: 25px; font-size: 15px; line-height: 1.5;">Let your campus know who you are before you join the feed.</p>
             
             <div style="display: flex; flex-direction: column; gap: 15px; width: 100%;">
-                <input type="text" id="name" placeholder="Full Name (e.g. Rahul Sharma)" style="text-align: center;">
-                <input type="text" id="branch" placeholder="Branch (e.g. CSE, Mechanical)" style="text-align: center;">
-                <input type="text" id="year" placeholder="Year (e.g. 1st Year, 4th Year)" style="text-align: center;">
+                <input type="text" id="name" placeholder="Full Name (e.g. Rahul Sharma)" style="padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 16px; background-color: var(--bg-color); outline: none; font-family: inherit; text-align: center;">
+                
+                <input type="text" id="branch" placeholder="Branch (e.g. CSE, Mechanical)" style="padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 16px; background-color: var(--bg-color); outline: none; font-family: inherit; text-align: center;">
+                
+                <input type="text" id="year" placeholder="Year (e.g. 1st Year, 4th Year)" style="padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 16px; background-color: var(--bg-color); outline: none; font-family: inherit; text-align: center;">
             </div>
             
             <!-- Error/Success Message Container -->
-            <p id="profile-msg" style="color: #e11d48; margin-top: 15px; font-size: 14px; display: none; font-weight: bold;"></p>
+            <p id="profile-msg" style="color: #e11d48; margin-top: 15px; font-size: 14px; display: none; font-weight: 600;"></p>
 
-            <button id="save-btn" style="width: 100%; margin-top: 20px; padding: 12px; background-color: #10b981; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Save & Enter Campus</button>
+            <button id="save-btn" style="width: 100%; margin-top: 25px; padding: 14px; background-color: #10b981; color: white; border: none; border-radius: var(--radius-full); font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.1s ease;">Save & Enter Campus</button>
         </div>
         
     </div>

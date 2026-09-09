@@ -5,19 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Profile - Campus Social</title>
     <link rel="stylesheet" href="dashboard.css">
-<!-- Browser Tab Favicon -->
-<link rel="icon" type="image/png" href="/icons/favicon.png">
-
-<!-- iPhone/iPad App Icon Support -->
-<link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    
+    <!-- Browser Tab Favicon -->
+    <link rel="icon" type="image/png" href="/icons/favicon.png">
+    <!-- iPhone/iPad App Icon Support -->
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
     <nav class="navbar">
         <h2>Campus Social 🚀</h2>
-        <div>
-            <button onclick="window.location.href='dashboard.html'" style="background: #10b981; margin-right: 10px; cursor: pointer;">Back to Home</button>
-            <button id="logout-btn" style="cursor: pointer;">Logout</button>
+        <div style="display: flex; gap: 12px;">
+            <button onclick="window.location.href='dashboard.html'" style="background-color: var(--text-muted);">Back to Home</button>
+            <button id="logout-btn">Logout</button>
         </div>
     </nav>
 
@@ -26,27 +26,28 @@
         <!-- 1. LEFT COLUMN: Universal Sidebar Navigation -->
         <aside class="sidebar">
             <ul>
-                <li onclick="window.location.href='dashboard.html'" style="cursor: pointer;">🏠 Home</li>
-                <li onclick="window.location.href='trending.html'" style="cursor: pointer;">🔥 Trending</li>
-                <li onclick="window.location.href='clubs.html'" style="cursor: pointer;">👥 Clubs & Communities</li>
-                <li onclick="window.location.href='marketplace.html'" style="cursor: pointer;">🛒 Marketplace</li>
-                <li onclick="window.location.href='events.html'" style="cursor: pointer;">📅 Campus Events</li>
-                <li onclick="window.location.href='match.html'" style="cursor: pointer;">🎲 Daily Match</li>
-                <li onclick="window.location.href='myprofile.html'" style="background: #f0f2f5; cursor: pointer;">👤 My Profile</li>
+                <li onclick="window.location.href='dashboard.html'">🏠 Home</li>
+                <li onclick="window.location.href='trending.html'">🔥 Trending</li>
+                <li onclick="window.location.href='clubs.html'">👥 Clubs & Communities</li>
+                <li onclick="window.location.href='marketplace.html'">🛒 Marketplace</li>
+                <li onclick="window.location.href='events.html'">📅 Campus Events</li>
+                <li onclick="window.location.href='match.html'">🎲 Daily Match</li>
+                <li onclick="window.location.href='gigs.html'">💼 Campus Gigs</li>
+                <li onclick="window.location.href='myprofile.html'" style="color: var(--primary); background: var(--bg-color);">👤 My Profile</li>
             </ul>
         </aside>
 
         <!-- 2. MIDDLE COLUMN: Profile Details & User's Posts -->
         <main class="feed">
             
-            <div class="create-post" style="text-align: center; background: linear-gradient(to right, #10b981, #3b82f6); color: white; border: none;">
-                <h1 id="profile-name" style="margin: 0; font-size: 28px;">Loading Name...</h1>
-                <p id="profile-details" style="font-size: 16px; margin-top: 5px;">Loading Branch & Year...</p>
-                <button onclick="window.location.href='profile.html'" style="background: rgba(255,255,255,0.2); color: white; margin-top: 15px; border: 1px solid white; cursor: pointer;">Edit Profile Details</button>
+            <div class="modern-card" style="text-align: center; background: linear-gradient(135deg, var(--primary), #3b82f6); color: white; border: none; padding: 40px 20px;">
+                <h1 id="profile-name" style="margin: 0; font-size: 28px; font-weight: 700;">Loading Name...</h1>
+                <p id="profile-details" style="font-size: 16px; margin-top: 8px; opacity: 0.9;">Loading Branch & Year...</p>
+                <button onclick="window.location.href='profile.html'" style="background: rgba(255,255,255,0.2); color: white; margin-top: 20px; border: 1px solid rgba(255,255,255,0.5); font-weight: 600; padding: 10px 24px; transition: background 0.2s;">Edit Profile Details</button>
             </div>
 
-            <h3 style="margin-top: 20px; color: #333;">My Recent Posts</h3>
-            <div id="my-posts-list"></div>
+            <h3 style="margin-top: 20px; color: var(--text-main); font-weight: 700;">My Recent Posts</h3>
+            <div id="my-posts-list" style="display: flex; flex-direction: column; gap: 15px;"></div>
             
         </main>
 
@@ -54,9 +55,9 @@
         <aside class="right-sidebar">
             
             <!-- Profile Stats / Info Widget -->
-            <div class="widget" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                <h3 style="margin-top: 0; color: #3b82f6;">⚙️ Account Status</h3>
-                <p style="font-size: 14px; color: #555;">Your profile is visible to other verified students on the campus network.</p>
+            <div class="widget modern-card" style="border-left: 5px solid var(--primary);">
+                <h3 style="margin-top: 0; color: var(--primary); font-weight: 700;">⚙️ Account Status</h3>
+                <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6;">Your profile is visible to other verified students on the campus network.</p>
             </div>
 
         </aside>

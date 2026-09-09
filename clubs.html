@@ -5,19 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clubs & Communities - Campus Social</title>
     <link rel="stylesheet" href="dashboard.css">
-<!-- Browser Tab Favicon -->
-<link rel="icon" type="image/png" href="/icons/favicon.png">
-
-<!-- iPhone/iPad App Icon Support -->
-<link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    
+    <!-- Browser Tab Favicon -->
+    <link rel="icon" type="image/png" href="/icons/favicon.png">
+    <!-- iPhone/iPad App Icon Support -->
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
     <nav class="navbar">
         <h2>Campus Social 👥</h2>
-        <div>
-            <button onclick="window.location.href='dashboard.html'" style="background: #10b981; margin-right: 10px; cursor: pointer;">Back to Home</button>
-            <button id="logout-btn" style="cursor: pointer;">Logout</button>
+        <div style="display: flex; gap: 12px;">
+            <button onclick="window.location.href='dashboard.html'" style="background-color: var(--text-muted);">Back to Home</button>
+            <button id="logout-btn">Logout</button>
         </div>
     </nav>
 
@@ -26,37 +26,40 @@
         <!-- 1. LEFT COLUMN: Universal Sidebar Navigation -->
         <aside class="sidebar">
             <ul>
-                <li onclick="window.location.href='dashboard.html'" style="cursor: pointer;">🏠 Home</li>
-                <li onclick="window.location.href='trending.html'" style="cursor: pointer;">🔥 Trending</li>
-                <li onclick="window.location.href='clubs.html'" style="background: #f0f2f5; cursor: pointer;">👥 Clubs & Communities</li>
-                <li onclick="window.location.href='marketplace.html'" style="cursor: pointer;">🛒 Marketplace</li>
-                <li onclick="window.location.href='events.html'" style="cursor: pointer;">📅 Campus Events</li>
-                <li onclick="window.location.href='match.html'" style="cursor: pointer;">🎲 Daily Match</li>
-                <li onclick="window.location.href='myprofile.html'" style="cursor: pointer;">👤 My Profile</li>
+                <li onclick="window.location.href='dashboard.html'">🏠 Home</li>
+                <li onclick="window.location.href='trending.html'">🔥 Trending</li>
+                <li onclick="window.location.href='clubs.html'" style="color: var(--primary); background: var(--bg-color);">👥 Clubs & Communities</li>
+                <li onclick="window.location.href='marketplace.html'">🛒 Marketplace</li>
+                <li onclick="window.location.href='events.html'">📅 Campus Events</li>
+                <li onclick="window.location.href='match.html'">🎲 Daily Match</li>
+                <li onclick="window.location.href='gigs.html'">💼 Campus Gigs</li>
+                <li onclick="window.location.href='myprofile.html'">👤 My Profile</li>
             </ul>
         </aside>
 
         <!-- 2. MIDDLE COLUMN: Club Specific Feed -->
         <main class="feed">
-            <div class="create-post">
-                <h3 id="active-club-title" style="margin-top: 0; color: #2563eb;">💻 Coding Club</h3>
-                <textarea id="club-post-input" placeholder="Post in this club..." style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-family: inherit; resize: none;"></textarea>
-                <button id="club-post-btn" style="width: 100%; cursor: pointer;">Post to Club</button>
+            <div class="create-post modern-card">
+                <h3 id="active-club-title" style="margin-top: 0; color: var(--primary); font-weight: 700;">💻 Coding Club</h3>
+                <textarea id="club-post-input" placeholder="Start a discussion in this club..." required></textarea>
+                <button id="club-post-btn" style="width: 100%;">Post to Club</button>
             </div>
 
-            <h3 style="margin-top: 20px; color: #333;">Club Discussions</h3>
-            <div id="club-live-posts"></div>
+            <h3 style="margin-top: 20px; color: var(--text-main); font-weight: 700;">Club Discussions</h3>
+            <div id="club-live-posts" style="display: flex; flex-direction: column; gap: 15px;"></div>
         </main>
 
-        <!-- 3. RIGHT COLUMN: Club Selector Widget (Moved from left) -->
+        <!-- 3. RIGHT COLUMN: Club Selector Widget -->
         <aside class="right-sidebar">
             
-            <div class="widget" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                <h3 style="margin-top: 0; color: #333;">📌 Select a Club</h3>
-                <ul id="club-list" style="list-style: none; padding: 0; margin: 0;">
-                    <li class="club-option" data-club="Coding Club" style="background: #f0f2f5; padding: 10px; border-radius: 6px; margin-bottom: 5px; cursor: pointer; font-weight: bold;">💻 Coding Club</li>
-                    <li class="club-option" data-club="Cultural Club" style="padding: 10px; border-radius: 6px; margin-bottom: 5px; cursor: pointer; font-weight: bold;">🎭 Cultural Club</li>
-                    <li class="club-option" data-club="Sports Club" style="padding: 10px; border-radius: 6px; margin-bottom: 5px; cursor: pointer; font-weight: bold;">🏏 Sports Club</li>
+            <div class="widget modern-card">
+                <h3 style="margin-top: 0; color: var(--text-main); font-weight: 700;">📌 Select a Club</h3>
+                <ul id="club-list" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+                    <li class="club-option" data-club="Coding Club" style="background: var(--bg-color); color: var(--primary); padding: 12px; border-radius: var(--radius-md); cursor: pointer; font-weight: 600; border: 1px solid var(--border);">💻 Coding Club</li>
+                    
+                    <li class="club-option" data-club="Cultural Club" style="padding: 12px; border-radius: var(--radius-md); cursor: pointer; font-weight: 600; border: 1px solid transparent; transition: background 0.2s;">🎭 Cultural Club</li>
+                    
+                    <li class="club-option" data-club="Sports Club" style="padding: 12px; border-radius: var(--radius-md); cursor: pointer; font-weight: 600; border: 1px solid transparent; transition: background 0.2s;">🏏 Sports Club</li>
                 </ul>
             </div>
 
