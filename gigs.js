@@ -21,7 +21,22 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const analytics = getAnalytics(app);
 
+// Global State Variables
+let currentUser = null;
 let userProfile = null;
+
+// Firebase Auth Block
+onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+        window.location.href = "index.html";
+    } else {
+        currentUser = user;
+        const docSnap = await getDoc(doc(db, "users", user.uid));
+        if (docSnap.exists()) {
+            userProfile = docSnap.data();
+        }
+    }
+});
 
 function escapeHTML(str) {
     if (!str) return "";
@@ -29,14 +44,6 @@ function escapeHTML(str) {
     div.textContent = str;
     return div.innerHTML;
 }
-
-onAuthStateChanged(auth, async (user) => {
-    if (!user) window.location.href = "index.html";
-    else {
-        const docSnap = await getDoc(doc(db, "users", user.uid));
-        if (docSnap.exists()) userProfile = docSnap.data();
-    }
-});
 
 document.getElementById('logout-btn').addEventListener('click', () => {
     signOut(auth).then(() => window.location.href = "index.html");
@@ -47,7 +54,7 @@ postBtn.addEventListener('click', async () => {
     const title = document.getElementById('gig-title').value.trim();
     const price = document.getElementById('gig-price').value.trim();
 
-    if (!title || !price || !userProfile) {
+    if (!title || !price || !userProfile || !currentUser) {
         postBtn.innerText = "⚠️ Fill all details!";
         setTimeout(() => postBtn.innerText = "Post Gig & Find Helper", 2000);
         return;

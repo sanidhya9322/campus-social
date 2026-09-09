@@ -21,8 +21,24 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const analytics = getAnalytics(app);
 
+// Global State Variables
+let currentUser = null;
 let userProfile = null;
 let currentClub = "Coding Club"; // Default club jab page khule
+
+// Check Login & Auth State Block
+onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+        window.location.href = "index.html";
+    } else {
+        currentUser = user;
+        const docSnap = await getDoc(doc(db, "users", user.uid));
+        if (docSnap.exists()) userProfile = docSnap.data();
+
+        // Initial data load after user authentication
+        loadClubPosts();
+    }
+});
 
 // XSS Protection Helper Function
 function escapeHTML(str) {
@@ -31,16 +47,6 @@ function escapeHTML(str) {
     div.textContent = str;
     return div.innerHTML;
 }
-
-// Check Login
-onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-        window.location.href = "index.html";
-    } else {
-        const docSnap = await getDoc(doc(db, "users", user.uid));
-        if (docSnap.exists()) userProfile = docSnap.data();
-    }
-});
 
 document.getElementById('logout-btn').addEventListener('click', () => {
     signOut(auth).then(() => window.location.href = "index.html");
@@ -73,7 +79,7 @@ const postInput = document.getElementById('club-post-input');
 postBtn.addEventListener('click', async () => {
     const text = postInput.value.trim();
     
-    if (!text || !userProfile) {
+    if (!text || !userProfile || !currentUser) {
         const originalText = postBtn.innerText;
         postBtn.innerText = "⚠️ Write something to post!";
         postBtn.style.backgroundColor = "#e11d48";
@@ -154,6 +160,3 @@ function loadClubPosts() {
         }
     });
 }
-
-// Initial load
-loadClubPosts();

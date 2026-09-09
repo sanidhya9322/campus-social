@@ -26,7 +26,19 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const analytics = getAnalytics(app);
 
+// 1. Declare currentUser globally before any functions or event listeners
 let currentUser = null;
+
+// 2. Strict Firebase Auth Block
+onAuthStateChanged(auth, (user) => {
+    if (!user) {
+        window.location.href = "index.html";
+    } else {
+        currentUser = user;
+        // [Put initial data loading function here if any]
+        // Note: No auto-load functions present on this specific page.
+    }
+});
 
 // XSS Protection Helper Function
 function escapeHTML(str) {
@@ -36,11 +48,6 @@ function escapeHTML(str) {
     return div.innerHTML;
 }
 
-onAuthStateChanged(auth, (user) => {
-    if (!user) window.location.href = "index.html";
-    else currentUser = user;
-});
-
 document.getElementById('logout-btn')?.addEventListener('click', () => {
     signOut(auth).then(() => window.location.href = "index.html");
 });
@@ -49,6 +56,7 @@ const matchBtn = document.getElementById('find-match-btn');
 const matchResult = document.getElementById('match-result');
 
 matchBtn.addEventListener('click', async () => {
+    // 3. This safely relies on the globally scoped currentUser
     if (!currentUser) return;
 
     matchBtn.innerText = "🎲 Searching campus...";

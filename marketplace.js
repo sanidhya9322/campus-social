@@ -21,7 +21,27 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const analytics = getAnalytics(app);
 
+// Global Variables
+let currentUser = null;
 let userProfile = null;
+
+// Firebase Auth Block: Check Login & Fetch Profile
+onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+        window.location.href = "index.html";
+    } else {
+        currentUser = user;
+        
+        // Fetch additional user profile data
+        const docSnap = await getDoc(doc(db, "users", user.uid));
+        if (docSnap.exists()) {
+            userProfile = docSnap.data();
+        }
+
+        // Only load data if the user is verified
+        loadMarketplaceListings();
+    }
+});
 
 // XSS Protection Helper Function
 function escapeHTML(str) {
@@ -30,18 +50,6 @@ function escapeHTML(str) {
     div.textContent = str;
     return div.innerHTML;
 }
-
-// Check Login & Fetch Profile
-onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-        window.location.href = "index.html";
-    } else {
-        const docSnap = await getDoc(doc(db, "users", user.uid));
-        if (docSnap.exists()) {
-            userProfile = docSnap.data();
-        }
-    }
-});
 
 document.getElementById('logout-btn').addEventListener('click', () => {
     signOut(auth).then(() => window.location.href = "index.html");
@@ -53,7 +61,7 @@ listBtn.addEventListener('click', async () => {
     const itemName = document.getElementById('item-name').value.trim();
     const itemPrice = document.getElementById('item-price').value.trim();
 
-    if (!itemName || !itemPrice || !userProfile) {
+    if (!itemName || !itemPrice || !userProfile || !currentUser) {
         const originalText = listBtn.innerText;
         listBtn.innerText = "⚠️ Please fill all details!";
         listBtn.style.backgroundColor = "#e11d48";
@@ -98,39 +106,44 @@ listBtn.addEventListener('click', async () => {
     }
 });
 
-// Load Listings Live
-const marketQuery = query(collection(db, "marketplace_items"), orderBy("timestamp", "desc"));
-const listingsContainer = document.getElementById('marketplace-listings');
+// Load Listings Live (Wrapped in a function to run only after auth is confirmed)
+function loadMarketplaceListings() {
+    const marketQuery = query(collection(db, "marketplace_items"), orderBy("timestamp", "desc"));
+    const listingsContainer = document.getElementById('marketplace-listings');
 
-onSnapshot(marketQuery, (snapshot) => {
-    listingsContainer.innerHTML = "";
-    
-    if (snapshot.empty) {
-        listingsContainer.innerHTML = "<p style='color:gray; text-align:center; padding: 20px;'>No items listed yet. Be the first to sell something!</p>";
-        return;
-    }
-    
-    snapshot.forEach((docSnap) => {
-        const item = docSnap.data();
-        
-        const itemCard = document.createElement('div');
-        itemCard.className = 'post'; 
-        
-        // Mailto link for direct email contact
-        const mailtoLink = `mailto:${escapeHTML(item.sellerContact)}?subject=Interested in buying: ${escapeHTML(item.name)}`;
+    // Ensure the container exists on the page before attaching the listener
+    if (!listingsContainer) return;
 
-        itemCard.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="margin: 0; color: #1f2937;">${escapeHTML(item.name)}</h3>
-                <span style="background: #10b981; color: white; padding: 5px 10px; border-radius: 5px; font-weight: bold;">₹${escapeHTML(String(item.price))}</span>
-            </div>
-            <p style="margin-top: 10px; color: gray;">Listed by: ${escapeHTML(item.sellerName)}</p>
+    onSnapshot(marketQuery, (snapshot) => {
+        listingsContainer.innerHTML = "";
+        
+        if (snapshot.empty) {
+            listingsContainer.innerHTML = "<p style='color:gray; text-align:center; padding: 20px;'>No items listed yet. Be the first to sell something!</p>";
+            return;
+        }
+        
+        snapshot.forEach((docSnap) => {
+            const item = docSnap.data();
             
-            <a href="${mailtoLink}" style="display: block; text-align: center; text-decoration: none; background: #2563eb; color: white; width: 100%; margin-top: 15px; padding: 10px; border-radius: 6px; font-weight: bold; box-sizing: border-box;">
-                ✉️ Contact Seller
-            </a>
-        `;
-        
-        listingsContainer.appendChild(itemCard);
+            const itemCard = document.createElement('div');
+            itemCard.className = 'post'; 
+            
+            // Mailto link for direct email contact
+            const mailtoLink = `mailto:${escapeHTML(item.sellerContact)}?subject=Interested in buying: ${escapeHTML(item.name)}`;
+
+            itemCard.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0; color: #1f2937;">${escapeHTML(item.name)}</h3>
+                    <span style="background: #10b981; color: white; padding: 5px 10px; border-radius: 5px; font-weight: bold;">₹${escapeHTML(String(item.price))}</span>
+                </div>
+                <p style="margin-top: 10px; color: gray;">Listed by: ${escapeHTML(item.sellerName)}</p>
+                
+                <a href="${mailtoLink}" style="display: block; text-align: center; text-decoration: none; background: #2563eb; color: white; width: 100%; margin-top: 15px; padding: 10px; border-radius: 6px; font-weight: bold; box-sizing: border-box;">
+                    ✉️ Contact Seller
+                </a>
+            `;
+            
+            listingsContainer.appendChild(itemCard);
+        });
     });
-});
+}
