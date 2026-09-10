@@ -47,7 +47,7 @@ document.getElementById('update-poll-btn').addEventListener('click', async () =>
 
     if (!q || !a || !b) return alert("Fill all poll fields!");
 
-    await setDoc(doc(db, "app_settings", "daily_poll"), {
+    await setDoc(doc(db, "polls", "daily_poll"), {
         question: q,
         optionA: a,
         optionB: b,
