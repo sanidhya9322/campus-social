@@ -52,12 +52,37 @@ function canUserPost(postType = 'general') {
     return true;
 }
 
-// 1. Check Login
+// Apni email id yahan update zaroor karna
+const adminEmails = [
+    "sanidhyapethe@gmail.com", 
+    "chaitaliholey6@gmail.com"
+];
+
+// 1. Check Login & Admin Setup
 onAuthStateChanged(auth, async (user) => {
     if (!user) {
         window.location.href = "index.html"; 
     } else {
         currentUser = user;
+
+        // --- SMART ADMIN BUTTON INJECTION ---
+        if (adminEmails.includes(user.email)) {
+            if (!document.getElementById('admin-nav-btn')) {
+                const sidebar = document.querySelector('.sidebar ul');
+                if (sidebar) {
+                    const adminLi = document.createElement('li');
+                    adminLi.id = "admin-nav-btn";
+                    adminLi.innerHTML = "🛡️ Admin Panel";
+                    adminLi.style.cssText = "color: #e11d48; font-weight: bold; cursor: pointer; border-top: 2px dashed #e11d48; margin-top: 10px; padding-top: 10px; background: transparent;";
+                    
+                    adminLi.onclick = () => window.location.href = 'admin.html';
+                    sidebar.appendChild(adminLi);
+                }
+            }
+        }
+        // ------------------------------------
+
+        // User Profile Existence Check
         const docSnap = await getDoc(doc(db, "users", currentUser.uid));
         if (docSnap.exists()) {
             userProfile = docSnap.data(); 
