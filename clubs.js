@@ -103,7 +103,8 @@ postBtn.addEventListener('click', async () => {
             authorName: userProfile.fullName,
             authorId: currentUser.uid,
             timestamp: new Date(),
-            likes: [] // Add empty likes array for new posts
+            likes: [], // Add empty likes array for new posts
+            comments: [] // Add empty comments array for new posts
         });
         
         localStorage.setItem('last_post_time_club', Date.now());
@@ -147,9 +148,36 @@ window.likeClubPost = async (postId, currentLikes) => {
     }
 };
 
-window.commentOnClubPost = (postId) => {
-    alert("Comment feature for clubs is coming soon!"); 
-    // Yahan tum apna comment modal/logic laga sakte ho baad mein
+// Toggle Comment Section Visibility
+window.toggleCommentSection = (postId) => {
+    const section = document.getElementById(`comment-section-${postId}`);
+    section.style.display = section.style.display === "none" ? "block" : "none";
+};
+
+// Submit New Comment to Firestore
+window.submitClubComment = async (postId) => {
+    const input = document.getElementById(`comment-input-${postId}`);
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.disabled = true;
+    try {
+        const postRef = doc(db, "club_posts", postId);
+        await updateDoc(postRef, {
+            comments: arrayUnion({
+                text: text,
+                authorName: userProfile.fullName,
+                uid: currentUser.uid,
+                timestamp: Date.now()
+            })
+        });
+        input.value = ""; // Clear input after posting
+    } catch (error) {
+        console.error("Error posting comment:", error);
+        alert("Failed to post comment.");
+    } finally {
+        input.disabled = false;
+    }
 };
 
 
@@ -171,11 +199,21 @@ function loadClubPosts() {
             if (postData.clubName === currentClub) {
                 postCount++;
                 
-                // Ensure likes array exists to prevent errors on old posts
+                // Ensure arrays exist
                 const likesArray = postData.likes || [];
+                const commentsArray = postData.comments || []; // Fetch comments
+                
                 const isLiked = likesArray.includes(currentUser.uid);
                 const likeColor = isLiked ? "#e11d48" : "gray";
                 const likeText = isLiked ? "❤️ Liked" : "🤍 Like";
+
+                // Generate HTML for existing comments
+                let commentsHTML = commentsArray.map(comment => `
+                    <div style="background: var(--bg-color); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+                        <strong style="font-size: 13px; color: var(--primary);">${escapeHTML(comment.authorName)}</strong>
+                        <p style="margin: 4px 0 0 0; font-size: 14px; color: var(--text-main);">${escapeHTML(comment.text)}</p>
+                    </div>
+                `).join('');
 
                 const postElement = document.createElement('div');
                 postElement.className = 'post modern-card';
@@ -192,25 +230,36 @@ function loadClubPosts() {
                     <p style="margin: 15px 0; color: #333; line-height: 1.5;">${escapeHTML(postData.content)}</p>
                     
                     <div style="display: flex; gap: 15px; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px;">
-                        
-                        <!-- Like Button -->
                         <button onclick="window.likeClubPost('${docSnapshot.id}', ['${likesArray.join("','")}'])" 
                             style="background: none; border: none; color: ${likeColor}; cursor: pointer; font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 5px;">
                             ${likeText} (${likesArray.length})
                         </button>
                         
-                        <!-- Comment Button -->
-                        <button onclick="window.commentOnClubPost('${docSnapshot.id}')" 
+                        <!-- Toggle Comment Section -->
+                        <button onclick="window.toggleCommentSection('${docSnapshot.id}')" 
                             style="background: none; border: none; color: gray; cursor: pointer; font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 5px;">
-                            💬 Comment
+                            💬 Comment (${commentsArray.length})
                         </button>
                         
-                        <!-- NEW: Report Button -->
                         <button onclick="window.reportPost('${docSnapshot.id}', 'club_posts')" 
                             style="background: none; border: none; color: #e11d48; cursor: pointer; font-size: 14px; font-weight: bold; margin-left: auto; display: flex; align-items: center; gap: 5px;">
                             ⚠️ Report
                         </button>
+                    </div>
 
+                    <!-- Hidden Comment Box Section -->
+                    <div id="comment-section-${docSnapshot.id}" style="display: none; margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 15px;">
+                        <div style="max-height: 200px; overflow-y: auto; margin-bottom: 10px;">
+                            ${commentsHTML}
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="comment-input-${docSnapshot.id}" placeholder="Write a comment..." 
+                                style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-md); font-family: inherit; outline: none; background: var(--bg-color);">
+                            <button onclick="window.submitClubComment('${docSnapshot.id}')" 
+                                style="background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: var(--radius-md); font-weight: bold; cursor: pointer;">
+                                Post
+                            </button>
+                        </div>
                     </div>
                 `;
                 feedContainer.appendChild(postElement);
