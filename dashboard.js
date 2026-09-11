@@ -85,7 +85,7 @@ logoutBtn.addEventListener('click', function() {
     signOut(auth).then(() => window.location.href = "index.html");
 });
 
-// 3. Create Post (REMOVED HARDCODED NAME/BRANCH)
+// 3. Create Post
 postForm.addEventListener('submit', async function(e) {
     e.preventDefault();
     if (!canUserPost('feed')) return; 
@@ -100,7 +100,7 @@ postForm.addEventListener('submit', async function(e) {
     try {
         await addDoc(collection(db, "campus_posts"), {
             content: text,
-            authorId: currentUser.uid, // 🔴 Only saving ID now
+            authorId: currentUser.uid, 
             likes: 0,
             likedBy: [], 
             comments: [], 
@@ -116,12 +116,12 @@ postForm.addEventListener('submit', async function(e) {
     }
 });
 
-// 🔴 DYNAMIC CACHE LOGIC: Database reads bachane ke liye
+// User Cache
 const userCache = {};
 
 async function getFreshUserData(uid) {
     if (!uid) return { fullName: "Anonymous Student", branch: "", year: "" };
-    if (userCache[uid]) return userCache[uid]; // Cache se return karo
+    if (userCache[uid]) return userCache[uid]; 
     
     try {
         const uDoc = await getDoc(doc(db, "users", uid));
@@ -135,19 +135,16 @@ async function getFreshUserData(uid) {
     return { fullName: "Anonymous Student", branch: "Student", year: "" };
 }
 
-// 4. Live Feed with Dynamic Profile Sync
+// 4. Live Feed Render
 const postsQuery = query(collection(db, "campus_posts"), orderBy("timestamp", "desc"));
 
 onSnapshot(postsQuery, async (snapshot) => {
-    // UI Flicker rokne ke liye hum ek fragment banayenge
     const tempContainer = document.createElement('div');
     
-    // 🔴 FOR...OF loop use kiya hai taaki async/await sahi se kaam kare
     for (const docSnapshot of snapshot.docs) {
         const postData = docSnapshot.data();
         const postId = docSnapshot.id; 
         
-        // POST AUTHOR DETAILS FETCH
         const postAuthorInfo = await getFreshUserData(postData.authorId);
         const displayName = postAuthorInfo.fullName;
         const displayBadge = postAuthorInfo.branch ? `${postAuthorInfo.branch}, ${postAuthorInfo.year}` : "Student";
@@ -155,21 +152,21 @@ onSnapshot(postsQuery, async (snapshot) => {
         const postElement = document.createElement('div');
         postElement.className = 'post';
 
-        const commentsList = postData.comments || [];
+        // 🔴 NAYA LOGIC: Nested Replies System
+        const allComments = postData.comments || [];
+        const topLevelComments = allComments.filter(c => !c.parentId); // Main comments only
+        
         let commentsHTML = '';
-        
         const displayLimit = 15;
-        const visibleComments = commentsList.slice(0, displayLimit);
+        const visibleComments = topLevelComments.slice(0, displayLimit);
         
-        // COMMENT AUTHOR DETAILS FETCH & UI RENDER
         for (const comment of visibleComments) {
             const commentAuthorInfo = await getFreshUserData(comment.authorId);
+            const uniqueCId = comment.commentId || comment.timestamp;
             
-            // 🔴 NAYA LOGIC: Check if user owns the comment
+            // Main Comment Action Buttons
             let actionButtons = '';
             if (comment.authorId === currentUser.uid) {
-                // We use comment.commentId if it exists, otherwise fallback to timestamp for old comments
-                const uniqueCId = comment.commentId || comment.timestamp;
                 actionButtons = `
                     <div style="display: flex; gap: 8px;">
                         <button onclick="window.editComment('${postId}', '${uniqueCId}', '${escapeHTML(comment.text).replace(/'/g, "\\'")}', 'campus_posts')" style="background:none; border:none; color: #3b82f6; cursor:pointer; font-size:12px; padding:0;">✏️ Edit</button>
@@ -178,13 +175,57 @@ onSnapshot(postsQuery, async (snapshot) => {
                 `;
             }
 
-            commentsHTML += `
-                <div style="background: #f8f9fa; padding: 8px 12px; margin-top: 5px; border-radius: 6px; font-size: 14px; display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div>
-                        <strong style="color: #333;">${escapeHTML(commentAuthorInfo.fullName)}</strong>: 
-                        <span style="color: #4b5563;">${escapeHTML(comment.text)}</span>
+            // Fetch and render replies for this specific comment
+            const replies = allComments.filter(c => c.parentId === uniqueCId.toString());
+            let repliesHTML = '';
+            for (const reply of replies) {
+                const replyAuthorInfo = await getFreshUserData(reply.authorId);
+                const replyUniqueCId = reply.commentId || reply.timestamp;
+                
+                let replyActions = '';
+                if (reply.authorId === currentUser.uid) {
+                    replyActions = `
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="window.editComment('${postId}', '${replyUniqueCId}', '${escapeHTML(reply.text).replace(/'/g, "\\'")}', 'campus_posts')" style="background:none; border:none; color: #3b82f6; cursor:pointer; font-size:11px; padding:0;">✏️ Edit</button>
+                            <button onclick="window.deleteComment('${postId}', '${replyUniqueCId}', 'campus_posts')" style="background:none; border:none; color: #e11d48; cursor:pointer; font-size:11px; padding:0;">🗑️ Delete</button>
+                        </div>
+                    `;
+                }
+
+                repliesHTML += `
+                    <div style="background: #e2e8f0; padding: 8px 10px; margin-top: 5px; border-radius: 6px; font-size: 13px; display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <strong style="color: #1e293b;">${escapeHTML(replyAuthorInfo.fullName)}</strong>: 
+                            <span style="color: #334155;">${escapeHTML(reply.text)}</span>
+                        </div>
+                        ${replyActions}
                     </div>
-                    ${actionButtons}
+                `;
+            }
+
+            // Final render of Main Comment + Replies
+            commentsHTML += `
+                <div style="background: #f8f9fa; padding: 10px 12px; margin-top: 10px; border-radius: 6px; font-size: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <strong style="color: #333;">${escapeHTML(commentAuthorInfo.fullName)}</strong>: 
+                            <span style="color: #4b5563;">${escapeHTML(comment.text)}</span>
+                        </div>
+                        ${actionButtons}
+                    </div>
+                    
+                    <button onclick="window.toggleReplyBox('${postId}', '${uniqueCId}')" style="background:none; border:none; color: #6b7280; cursor:pointer; font-size:12px; padding:0; margin-top: 8px; font-weight: bold;">↩️ Reply</button>
+                    
+                    <div style="margin-left: 15px; border-left: 2px solid #cbd5e1; padding-left: 10px; margin-top: 5px;">
+                        ${repliesHTML}
+                    </div>
+
+                    <div id="reply-box-${postId}-${uniqueCId}" style="display: none; margin-top: 8px; margin-left: 15px;">
+                        <div style="display: flex; gap: 5px;">
+                            <input type="text" id="reply-input-${postId}-${uniqueCId}" placeholder="Reply to ${escapeHTML(commentAuthorInfo.fullName)}..." style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;">
+                            <button onclick="window.submitReply('${postId}', '${uniqueCId}', 'campus_posts')" style="background: #10b981; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">Send</button>
+                        </div>
+                    </div>
                 </div>
             `;
         }
@@ -202,7 +243,7 @@ onSnapshot(postsQuery, async (snapshot) => {
                     ❤️ ${postData.likes || 0}
                 </button>
                 <button class="toggle-comment-btn" style="background: #f0f2f5; color: #333; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-weight: bold;">
-                    💬 ${commentsList.length}
+                    💬 ${allComments.length}
                 </button>
                 
                 <button onclick="window.reportPost('${doc.id}', 'campus_posts')" style="background: none; border: none; color: #e11d48; cursor: pointer; font-size: 13px; font-weight: bold; margin-left: 15px;">
@@ -248,7 +289,7 @@ onSnapshot(postsQuery, async (snapshot) => {
             }
         });
 
-      // CREATE COMMENT
+      // CREATE MAIN COMMENT
         const commentBtn = postElement.querySelector('.comment-btn');
         const commentInput = postElement.querySelector('.comment-input');
         
@@ -258,7 +299,7 @@ onSnapshot(postsQuery, async (snapshot) => {
             
             await updateDoc(doc(db, "campus_posts", postId), {
                 comments: arrayUnion({
-                    commentId: currentUser.uid + '_' + Date.now(), // 🔴 Unique ID added
+                    commentId: currentUser.uid + '_' + Date.now(), 
                     text: commentText,
                     authorId: currentUser.uid, 
                     timestamp: Date.now()
@@ -270,7 +311,6 @@ onSnapshot(postsQuery, async (snapshot) => {
         tempContainer.appendChild(postElement);
     }
     
-    // UI ko ek sath update karna taaki screen na hile
     feedContainer.innerHTML = "";
     feedContainer.appendChild(tempContainer);
 });
@@ -357,7 +397,6 @@ window.reportPost = async (postId, collectionName) => {
             reportedBy: currentUser.uid,
             timestamp: new Date()
         });
-
         alert("✅ Post reported successfully. Admins will review it.");
     } catch (error) {
         console.error("Error reporting post:", error);
@@ -375,7 +414,6 @@ window.editComment = async (postId, commentId, oldText, collectionName) => {
         const snap = await getDoc(postRef);
         if(snap.exists()) {
             const post = snap.data();
-            // Find and update the specific comment
             const updatedComments = post.comments.map(c => {
                 const currentId = c.commentId || c.timestamp;
                 if(currentId.toString() === commentId.toString()) {
@@ -391,7 +429,7 @@ window.editComment = async (postId, commentId, oldText, collectionName) => {
     }
 };
 
-// 🔴 Global Delete Comment Function
+// 🔴 Global Delete Comment Function (Upgraded to delete orphaned replies)
 window.deleteComment = async (postId, commentId, collectionName) => {
     if (!confirm("Are you sure you want to delete this comment?")) return;
     
@@ -400,15 +438,51 @@ window.deleteComment = async (postId, commentId, collectionName) => {
         const snap = await getDoc(postRef);
         if(snap.exists()) {
             const post = snap.data();
-            // Filter out the deleted comment
+            // Filter target comment AND any replies attached to it
             const updatedComments = post.comments.filter(c => {
                 const currentId = c.commentId || c.timestamp;
-                return currentId.toString() !== commentId.toString();
+                return currentId.toString() !== commentId.toString() && c.parentId !== commentId.toString();
             });
             await updateDoc(postRef, { comments: updatedComments });
         }
     } catch(e) {
         console.error(e);
         alert("Error deleting comment.");
+    }
+};
+
+// 🔴 Global function to toggle reply input visibility
+window.toggleReplyBox = (postId, commentId) => {
+    const box = document.getElementById(`reply-box-${postId}-${commentId}`);
+    if(box) {
+        box.style.display = box.style.display === "none" ? "block" : "none";
+    }
+};
+
+// 🔴 Global function to submit a nested reply
+window.submitReply = async (postId, parentCommentId, collectionName) => {
+    const input = document.getElementById(`reply-input-${postId}-${parentCommentId}`);
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.disabled = true;
+    try {
+        const postRef = doc(db, collectionName, postId);
+        await updateDoc(postRef, {
+            comments: arrayUnion({
+                commentId: currentUser.uid + '_reply_' + Date.now(),
+                parentId: parentCommentId, 
+                text: text,
+                authorId: currentUser.uid, 
+                timestamp: Date.now()
+            })
+        });
+        input.value = "";
+        window.toggleReplyBox(postId, parentCommentId);
+    } catch (error) {
+        console.error("Error posting reply:", error);
+        alert("Failed to post reply.");
+    } finally {
+        input.disabled = false;
     }
 };

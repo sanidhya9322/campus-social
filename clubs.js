@@ -95,7 +95,6 @@ clubOptions.forEach(option => {
 const postBtn = document.getElementById('club-post-btn');
 const postInput = document.getElementById('club-post-input');
 
-// 🔴 CREATE CLUB POST (Removed hardcoded name)
 postBtn.addEventListener('click', async () => {
     if (!canUserPost('club')) return;
 
@@ -119,7 +118,7 @@ postBtn.addEventListener('click', async () => {
         await addDoc(collection(db, "club_posts"), {
             clubName: currentClub,
             content: text,
-            authorId: currentUser.uid, // Only ID saved
+            authorId: currentUser.uid, 
             timestamp: new Date(),
             likes: [], 
             comments: [] 
@@ -176,7 +175,7 @@ window.submitClubComment = async (postId) => {
         const postRef = doc(db, "club_posts", postId);
         await updateDoc(postRef, {
             comments: arrayUnion({
-                commentId: currentUser.uid + '_' + Date.now(), // 🔴 Unique ID added
+                commentId: currentUser.uid + '_' + Date.now(),
                 text: text,
                 authorId: currentUser.uid, 
                 timestamp: Date.now()
@@ -190,10 +189,11 @@ window.submitClubComment = async (postId) => {
         input.disabled = false;
     }
 };
+
 const feedContainer = document.getElementById('club-live-posts');
 let unsubscribe = null;
 
-// 🔴 DYNAMIC FEED RENDER LOGIC
+// 🔴 DYNAMIC FEED RENDER LOGIC (With Nested Replies)
 function loadClubPosts() {
     const postsQuery = query(collection(db, "club_posts"), orderBy("timestamp", "desc"));
     
@@ -209,9 +209,7 @@ function loadClubPosts() {
             if (postData.clubName === currentClub) {
                 postCount++;
                 
-                // Fetch Post Author Details
                 const postAuthorInfo = await getFreshUserData(postData.authorId);
-                
                 const likesArray = postData.likes || [];
                 const commentsArray = postData.comments || []; 
                 
@@ -219,16 +217,18 @@ function loadClubPosts() {
                 const likeColor = isLiked ? "#e11d48" : "gray";
                 const likeText = isLiked ? "❤️ Liked" : "🤍 Like";
 
-                // Generate HTML for existing comments with Dynamic Author Names & Action Buttons
+                // 🔴 NAYA LOGIC: Nested Replies Processing
+                const topLevelComments = commentsArray.filter(c => !c.parentId);
                 let commentsHTML = '';
-                for (const comment of commentsArray) {
+                
+                for (const comment of topLevelComments) {
                     const commenterId = comment.authorId || comment.uid; 
                     const commentAuthorInfo = await getFreshUserData(commenterId);
+                    const uniqueCId = comment.commentId || comment.timestamp;
                     
-                    // 🔴 NAYA LOGIC: Check if user owns the comment
+                    // Main Comment Action Buttons
                     let actionButtons = '';
                     if (commenterId === currentUser.uid) {
-                        const uniqueCId = comment.commentId || comment.timestamp;
                         actionButtons = `
                             <div style="display: flex; gap: 8px;">
                                 <button onclick="window.editClubComment('${docSnapshot.id}', '${uniqueCId}', '${escapeHTML(comment.text).replace(/'/g, "\\'")}')" style="background:none; border:none; color: #3b82f6; cursor:pointer; font-size:12px; padding:0;">✏️ Edit</button>
@@ -237,13 +237,61 @@ function loadClubPosts() {
                         `;
                     }
 
-                    commentsHTML += `
-                        <div style="background: var(--bg-color); padding: 10px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-start;">
-                            <div>
-                                <strong style="font-size: 13px; color: var(--primary);">${escapeHTML(commentAuthorInfo.fullName)}</strong>
-                                <p style="margin: 4px 0 0 0; font-size: 14px; color: var(--text-main);">${escapeHTML(comment.text)}</p>
+                    // Process Nested Replies for this comment
+                    const replies = commentsArray.filter(c => c.parentId === uniqueCId.toString());
+                    let repliesHTML = '';
+                    for (const reply of replies) {
+                        const replyAuthorId = reply.authorId || reply.uid;
+                        const replyAuthorInfo = await getFreshUserData(replyAuthorId);
+                        const replyUniqueCId = reply.commentId || reply.timestamp;
+                        
+                        let replyActions = '';
+                        if (replyAuthorId === currentUser.uid) {
+                            replyActions = `
+                                <div style="display: flex; gap: 8px;">
+                                    <button onclick="window.editClubComment('${docSnapshot.id}', '${replyUniqueCId}', '${escapeHTML(reply.text).replace(/'/g, "\\'")}')" style="background:none; border:none; color: #3b82f6; cursor:pointer; font-size:11px; padding:0;">✏️ Edit</button>
+                                    <button onclick="window.deleteClubComment('${docSnapshot.id}', '${replyUniqueCId}')" style="background:none; border:none; color: #e11d48; cursor:pointer; font-size:11px; padding:0;">🗑️ Delete</button>
+                                </div>
+                            `;
+                        }
+
+                        repliesHTML += `
+                            <div style="background: #e2e8f0; padding: 8px 10px; margin-top: 5px; border-radius: 6px; font-size: 13px; display: flex; justify-content: space-between; align-items: flex-start; color: #1e293b;">
+                                <div>
+                                    <strong style="color: #0f172a;">${escapeHTML(replyAuthorInfo.fullName)}</strong>
+                                    <p style="margin: 2px 0 0 0; color: #334155;">${escapeHTML(reply.text)}</p>
+                                </div>
+                                ${replyActions}
                             </div>
-                            ${actionButtons}
+                        `;
+                    }
+
+                    // Main Comment Container
+                    commentsHTML += `
+                        <div style="background: var(--bg-color); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div>
+                                    <strong style="font-size: 13px; color: var(--primary);">${escapeHTML(commentAuthorInfo.fullName)}</strong>
+                                    <p style="margin: 4px 0 0 0; font-size: 14px; color: var(--text-main);">${escapeHTML(comment.text)}</p>
+                                </div>
+                                ${actionButtons}
+                            </div>
+                            
+                            <!-- Reply Toggle Button -->
+                            <button onclick="window.toggleClubReplyBox('${docSnapshot.id}', '${uniqueCId}')" style="background:none; border:none; color: gray; cursor:pointer; font-size:12px; padding:0; margin-top: 8px; font-weight: bold;">↩️ Reply</button>
+                            
+                            <!-- Nested Replies Container -->
+                            <div style="margin-left: 15px; border-left: 2px solid var(--border); padding-left: 10px; margin-top: 5px;">
+                                ${repliesHTML}
+                            </div>
+
+                            <!-- Hidden Reply Input Box -->
+                            <div id="club-reply-box-${docSnapshot.id}-${uniqueCId}" style="display: none; margin-top: 8px; margin-left: 15px;">
+                                <div style="display: flex; gap: 5px;">
+                                    <input type="text" id="club-reply-input-${docSnapshot.id}-${uniqueCId}" placeholder="Reply to ${escapeHTML(commentAuthorInfo.fullName)}..." style="flex: 1; padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; background: var(--bg-color); color: var(--text-main);">
+                                    <button onclick="window.submitClubReply('${docSnapshot.id}', '${uniqueCId}')" style="background: var(--primary); color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">Send</button>
+                                </div>
+                            </div>
                         </div>
                     `;
                 }
@@ -280,7 +328,7 @@ function loadClubPosts() {
                     </div>
 
                     <div id="comment-section-${docSnapshot.id}" style="display: none; margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 15px;">
-                        <div style="max-height: 200px; overflow-y: auto; margin-bottom: 10px;">
+                        <div style="max-height: 300px; overflow-y: auto; margin-bottom: 10px;">
                             ${commentsHTML}
                         </div>
                         <div style="display: flex; gap: 10px;">
@@ -331,7 +379,7 @@ window.editClubComment = async (postId, commentId, oldText) => {
     }
 };
 
-// 🔴 Global Delete Club Comment Function
+// 🔴 Global Delete Club Comment Function (Deletes orphaned replies too)
 window.deleteClubComment = async (postId, commentId) => {
     if (!confirm("Are you sure you want to delete this comment?")) return;
     
@@ -342,12 +390,48 @@ window.deleteClubComment = async (postId, commentId) => {
             const post = snap.data();
             const updatedComments = post.comments.filter(c => {
                 const currentId = c.commentId || c.timestamp;
-                return currentId.toString() !== commentId.toString();
+                return currentId.toString() !== commentId.toString() && c.parentId !== commentId.toString();
             });
             await updateDoc(postRef, { comments: updatedComments });
         }
     } catch(e) {
         console.error(e);
         alert("Error deleting comment.");
+    }
+};
+
+// 🔴 Global function to toggle reply input visibility in Clubs
+window.toggleClubReplyBox = (postId, commentId) => {
+    const box = document.getElementById(`club-reply-box-${postId}-${commentId}`);
+    if(box) {
+        box.style.display = box.style.display === "none" ? "block" : "none";
+    }
+};
+
+// 🔴 Global function to submit a nested reply in Clubs
+window.submitClubReply = async (postId, parentCommentId) => {
+    const input = document.getElementById(`club-reply-input-${postId}-${parentCommentId}`);
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.disabled = true;
+    try {
+        const postRef = doc(db, "club_posts", postId);
+        await updateDoc(postRef, {
+            comments: arrayUnion({
+                commentId: currentUser.uid + '_reply_' + Date.now(),
+                parentId: parentCommentId,
+                text: text,
+                authorId: currentUser.uid,
+                timestamp: Date.now()
+            })
+        });
+        input.value = "";
+        window.toggleClubReplyBox(postId, parentCommentId);
+    } catch (error) {
+        console.error("Error posting reply:", error);
+        alert("Failed to post reply.");
+    } finally {
+        input.disabled = false;
     }
 };
