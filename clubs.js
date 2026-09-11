@@ -1,7 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, updateDoc, doc, getDoc, arrayUnion, arrayRemove, setDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-// Analytics CDN Import
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-analytics.js";
 
 const firebaseConfig = {
@@ -23,6 +22,25 @@ const analytics = getAnalytics(app);
 let currentUser = null;
 let userProfile = null;
 let currentClub = "Coding Club"; 
+
+// 🔴 DYNAMIC CACHE LOGIC
+const userCache = {};
+
+async function getFreshUserData(uid) {
+    if (!uid) return { fullName: "Anonymous Student", branch: "", year: "" };
+    if (userCache[uid]) return userCache[uid]; 
+    
+    try {
+        const uDoc = await getDoc(doc(db, "users", uid));
+        if (uDoc.exists()) {
+            userCache[uid] = uDoc.data();
+            return userCache[uid];
+        }
+    } catch (err) {
+        console.error("User fetch error:", err);
+    }
+    return { fullName: "Anonymous Student", branch: "Student", year: "" };
+}
 
 onAuthStateChanged(auth, async (user) => {
     if (!user) {
@@ -77,6 +95,7 @@ clubOptions.forEach(option => {
 const postBtn = document.getElementById('club-post-btn');
 const postInput = document.getElementById('club-post-input');
 
+// 🔴 CREATE CLUB POST (Removed hardcoded name)
 postBtn.addEventListener('click', async () => {
     if (!canUserPost('club')) return;
 
@@ -100,15 +119,13 @@ postBtn.addEventListener('click', async () => {
         await addDoc(collection(db, "club_posts"), {
             clubName: currentClub,
             content: text,
-            authorName: userProfile.fullName,
-            authorId: currentUser.uid,
+            authorId: currentUser.uid, // Only ID saved
             timestamp: new Date(),
-            likes: [], // Add empty likes array for new posts
-            comments: [] // Add empty comments array for new posts
+            likes: [], 
+            comments: [] 
         });
         
         localStorage.setItem('last_post_time_club', Date.now());
-
         postInput.value = "";
         
         postBtn.innerText = "✅ Posted!";
@@ -131,10 +148,6 @@ postBtn.addEventListener('click', async () => {
     }
 });
 
-
-// ----------------------------------------------------
-// Global Like & Comment Functions for Clubs
-// ----------------------------------------------------
 window.likeClubPost = async (postId, currentLikes) => {
     const postRef = doc(db, "club_posts", postId);
     try {
@@ -148,13 +161,11 @@ window.likeClubPost = async (postId, currentLikes) => {
     }
 };
 
-// Toggle Comment Section Visibility
 window.toggleCommentSection = (postId) => {
     const section = document.getElementById(`comment-section-${postId}`);
     section.style.display = section.style.display === "none" ? "block" : "none";
 };
 
-// Submit New Comment to Firestore
 window.submitClubComment = async (postId) => {
     const input = document.getElementById(`comment-input-${postId}`);
     const text = input.value.trim();
@@ -165,13 +176,13 @@ window.submitClubComment = async (postId) => {
         const postRef = doc(db, "club_posts", postId);
         await updateDoc(postRef, {
             comments: arrayUnion({
+                commentId: currentUser.uid + '_' + Date.now(), // 🔴 Unique ID added
                 text: text,
-                authorName: userProfile.fullName,
-                uid: currentUser.uid,
+                authorId: currentUser.uid, 
                 timestamp: Date.now()
             })
         });
-        input.value = ""; // Clear input after posting
+        input.value = ""; 
     } catch (error) {
         console.error("Error posting comment:", error);
         alert("Failed to post comment.");
@@ -179,41 +190,63 @@ window.submitClubComment = async (postId) => {
         input.disabled = false;
     }
 };
-
-
 const feedContainer = document.getElementById('club-live-posts');
 let unsubscribe = null;
 
+// 🔴 DYNAMIC FEED RENDER LOGIC
 function loadClubPosts() {
     const postsQuery = query(collection(db, "club_posts"), orderBy("timestamp", "desc"));
     
     if (unsubscribe) unsubscribe();
 
-    unsubscribe = onSnapshot(postsQuery, (snapshot) => {
-        feedContainer.innerHTML = ""; 
+    unsubscribe = onSnapshot(postsQuery, async (snapshot) => {
+        const tempContainer = document.createElement('div');
         let postCount = 0;
 
-        snapshot.forEach((docSnapshot) => {
+        for (const docSnapshot of snapshot.docs) {
             const postData = docSnapshot.data();
             
             if (postData.clubName === currentClub) {
                 postCount++;
                 
-                // Ensure arrays exist
+                // Fetch Post Author Details
+                const postAuthorInfo = await getFreshUserData(postData.authorId);
+                
                 const likesArray = postData.likes || [];
-                const commentsArray = postData.comments || []; // Fetch comments
+                const commentsArray = postData.comments || []; 
                 
                 const isLiked = likesArray.includes(currentUser.uid);
                 const likeColor = isLiked ? "#e11d48" : "gray";
                 const likeText = isLiked ? "❤️ Liked" : "🤍 Like";
 
-                // Generate HTML for existing comments
-                let commentsHTML = commentsArray.map(comment => `
-                    <div style="background: var(--bg-color); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
-                        <strong style="font-size: 13px; color: var(--primary);">${escapeHTML(comment.authorName)}</strong>
-                        <p style="margin: 4px 0 0 0; font-size: 14px; color: var(--text-main);">${escapeHTML(comment.text)}</p>
-                    </div>
-                `).join('');
+                // Generate HTML for existing comments with Dynamic Author Names & Action Buttons
+                let commentsHTML = '';
+                for (const comment of commentsArray) {
+                    const commenterId = comment.authorId || comment.uid; 
+                    const commentAuthorInfo = await getFreshUserData(commenterId);
+                    
+                    // 🔴 NAYA LOGIC: Check if user owns the comment
+                    let actionButtons = '';
+                    if (commenterId === currentUser.uid) {
+                        const uniqueCId = comment.commentId || comment.timestamp;
+                        actionButtons = `
+                            <div style="display: flex; gap: 8px;">
+                                <button onclick="window.editClubComment('${docSnapshot.id}', '${uniqueCId}', '${escapeHTML(comment.text).replace(/'/g, "\\'")}')" style="background:none; border:none; color: #3b82f6; cursor:pointer; font-size:12px; padding:0;">✏️ Edit</button>
+                                <button onclick="window.deleteClubComment('${docSnapshot.id}', '${uniqueCId}')" style="background:none; border:none; color: #e11d48; cursor:pointer; font-size:12px; padding:0;">🗑️ Delete</button>
+                            </div>
+                        `;
+                    }
+
+                    commentsHTML += `
+                        <div style="background: var(--bg-color); padding: 10px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <strong style="font-size: 13px; color: var(--primary);">${escapeHTML(commentAuthorInfo.fullName)}</strong>
+                                <p style="margin: 4px 0 0 0; font-size: 14px; color: var(--text-main);">${escapeHTML(comment.text)}</p>
+                            </div>
+                            ${actionButtons}
+                        </div>
+                    `;
+                }
 
                 const postElement = document.createElement('div');
                 postElement.className = 'post modern-card';
@@ -222,7 +255,7 @@ function loadClubPosts() {
                 
                 postElement.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: start;">
-                        <h4 style="margin: 0; color: #1f2937;">${escapeHTML(postData.authorName)} 
+                        <h4 style="margin: 0; color: #1f2937;">${escapeHTML(postAuthorInfo.fullName)} 
                             <span style="font-size: 13px; color: gray; font-weight: normal;">(${escapeHTML(postData.clubName)})</span>
                         </h4>
                     </div>
@@ -235,7 +268,6 @@ function loadClubPosts() {
                             ${likeText} (${likesArray.length})
                         </button>
                         
-                        <!-- Toggle Comment Section -->
                         <button onclick="window.toggleCommentSection('${docSnapshot.id}')" 
                             style="background: none; border: none; color: gray; cursor: pointer; font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 5px;">
                             💬 Comment (${commentsArray.length})
@@ -247,7 +279,6 @@ function loadClubPosts() {
                         </button>
                     </div>
 
-                    <!-- Hidden Comment Box Section -->
                     <div id="comment-section-${docSnapshot.id}" style="display: none; margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 15px;">
                         <div style="max-height: 200px; overflow-y: auto; margin-bottom: 10px;">
                             ${commentsHTML}
@@ -262,12 +293,61 @@ function loadClubPosts() {
                         </div>
                     </div>
                 `;
-                feedContainer.appendChild(postElement);
+                tempContainer.appendChild(postElement);
             }
-        });
+        }
 
+        feedContainer.innerHTML = ""; 
         if (postCount === 0) {
             feedContainer.innerHTML = `<div class="modern-card" style="padding: 30px; text-align: center;"><p style='color:gray; margin: 0;'>No discussions in ${currentClub} yet. Be the first to start!</p></div>`;
+        } else {
+            feedContainer.appendChild(tempContainer);
         }
     });
 }
+
+// 🔴 Global Edit Club Comment Function
+window.editClubComment = async (postId, commentId, oldText) => {
+    const newText = prompt("Edit your comment:", oldText);
+    if (!newText || newText.trim() === "" || newText === oldText) return;
+    
+    const postRef = doc(db, "club_posts", postId);
+    try {
+        const snap = await getDoc(postRef);
+        if(snap.exists()) {
+            const post = snap.data();
+            const updatedComments = post.comments.map(c => {
+                const currentId = c.commentId || c.timestamp;
+                if(currentId.toString() === commentId.toString()) {
+                    return { ...c, text: newText.trim() };
+                }
+                return c;
+            });
+            await updateDoc(postRef, { comments: updatedComments });
+        }
+    } catch(e) {
+        console.error(e);
+        alert("Error editing comment.");
+    }
+};
+
+// 🔴 Global Delete Club Comment Function
+window.deleteClubComment = async (postId, commentId) => {
+    if (!confirm("Are you sure you want to delete this comment?")) return;
+    
+    const postRef = doc(db, "club_posts", postId);
+    try {
+        const snap = await getDoc(postRef);
+        if(snap.exists()) {
+            const post = snap.data();
+            const updatedComments = post.comments.filter(c => {
+                const currentId = c.commentId || c.timestamp;
+                return currentId.toString() !== commentId.toString();
+            });
+            await updateDoc(postRef, { comments: updatedComments });
+        }
+    } catch(e) {
+        console.error(e);
+        alert("Error deleting comment.");
+    }
+};

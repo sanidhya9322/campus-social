@@ -1,7 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, updateDoc, doc, getDoc, arrayUnion, arrayRemove, setDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-// Analytics CDN Import
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-analytics.js";
 
 const firebaseConfig = {
@@ -12,10 +11,9 @@ const firebaseConfig = {
     storageBucket: "campus-socia.firebasestorage.app",
     messagingSenderId: "72432391092",
     appId: "1:72432391092:web:d97a1701b402a0ccf758e1",
-    measurementId: "G-BTNMN5KHZL" // Tumhara live Tracking ID
+    measurementId: "G-BTNMN5KHZL" 
 };
 
-// Initialize Firebase Core Services
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -29,7 +27,6 @@ const logoutBtn = document.getElementById('logout-btn');
 let currentUser = null;
 let userProfile = null;
 
-// XSS Protection Helper Function
 function escapeHTML(str) {
     if (!str) return "";
     const div = document.createElement('div');
@@ -37,11 +34,8 @@ function escapeHTML(str) {
     return div.innerHTML;
 }
 
-// ----------------------------------------------------
-// NAYA LOGIC: Cooldown check function (60 Seconds)
-// ----------------------------------------------------
 function canUserPost(postType = 'general') {
-    const COOLDOWN_TIME = 60000; // 60 seconds (1 minute)
+    const COOLDOWN_TIME = 60000; 
     const lastPostTime = localStorage.getItem(`last_post_time_${postType}`);
     
     if (lastPostTime && (Date.now() - lastPostTime < COOLDOWN_TIME)) {
@@ -52,7 +46,6 @@ function canUserPost(postType = 'general') {
     return true;
 }
 
-// Apni email id yahan update zaroor karna
 const adminEmails = [
     "sanidhyapethe@gmail.com", 
     "chaitaliholey6@gmail.com"
@@ -65,7 +58,6 @@ onAuthStateChanged(auth, async (user) => {
     } else {
         currentUser = user;
 
-        // --- SMART ADMIN BUTTON INJECTION ---
         if (adminEmails.includes(user.email)) {
             if (!document.getElementById('admin-nav-btn')) {
                 const sidebar = document.querySelector('.sidebar ul');
@@ -74,15 +66,12 @@ onAuthStateChanged(auth, async (user) => {
                     adminLi.id = "admin-nav-btn";
                     adminLi.innerHTML = "🛡️ Admin Panel";
                     adminLi.style.cssText = "color: #e11d48; font-weight: bold; cursor: pointer; border-top: 2px dashed #e11d48; margin-top: 10px; padding-top: 10px; background: transparent;";
-                    
                     adminLi.onclick = () => window.location.href = 'admin.html';
                     sidebar.appendChild(adminLi);
                 }
             }
         }
-        // ------------------------------------
 
-        // User Profile Existence Check
         const docSnap = await getDoc(doc(db, "users", currentUser.uid));
         if (docSnap.exists()) {
             userProfile = docSnap.data(); 
@@ -92,16 +81,13 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// 2. Logout
 logoutBtn.addEventListener('click', function() {
     signOut(auth).then(() => window.location.href = "index.html");
 });
 
-// 3. Create Post
+// 3. Create Post (REMOVED HARDCODED NAME/BRANCH)
 postForm.addEventListener('submit', async function(e) {
     e.preventDefault();
-
-    // 🔴 NAYA LOGIC: Check Spam Cooldown FIRST
     if (!canUserPost('feed')) return; 
 
     const text = postInput.value;
@@ -114,20 +100,14 @@ postForm.addEventListener('submit', async function(e) {
     try {
         await addDoc(collection(db, "campus_posts"), {
             content: text,
-            authorId: currentUser.uid, 
-            authorName: userProfile.fullName,
-            authorBranch: userProfile.branch,
-            authorYear: userProfile.year,
+            authorId: currentUser.uid, // 🔴 Only saving ID now
             likes: 0,
             likedBy: [], 
             comments: [], 
             timestamp: new Date()
         });
         postInput.value = ""; 
-
-        // 🔴 NAYA LOGIC: Post successful hone ke baad timer set kar do
         localStorage.setItem('last_post_time_feed', Date.now());
-
     } catch (error) {
         alert("Error saving post: " + error.message);
     } finally {
@@ -136,21 +116,44 @@ postForm.addEventListener('submit', async function(e) {
     }
 });
 
-// 4. Live Feed with Like & Comment Logic
+// 🔴 DYNAMIC CACHE LOGIC: Database reads bachane ke liye
+const userCache = {};
+
+async function getFreshUserData(uid) {
+    if (!uid) return { fullName: "Anonymous Student", branch: "", year: "" };
+    if (userCache[uid]) return userCache[uid]; // Cache se return karo
+    
+    try {
+        const uDoc = await getDoc(doc(db, "users", uid));
+        if (uDoc.exists()) {
+            userCache[uid] = uDoc.data();
+            return userCache[uid];
+        }
+    } catch (err) {
+        console.error("User fetch error:", err);
+    }
+    return { fullName: "Anonymous Student", branch: "Student", year: "" };
+}
+
+// 4. Live Feed with Dynamic Profile Sync
 const postsQuery = query(collection(db, "campus_posts"), orderBy("timestamp", "desc"));
 
-onSnapshot(postsQuery, (snapshot) => {
-    feedContainer.innerHTML = ""; 
+onSnapshot(postsQuery, async (snapshot) => {
+    // UI Flicker rokne ke liye hum ek fragment banayenge
+    const tempContainer = document.createElement('div');
     
-    snapshot.forEach((docSnapshot) => {
+    // 🔴 FOR...OF loop use kiya hai taaki async/await sahi se kaam kare
+    for (const docSnapshot of snapshot.docs) {
         const postData = docSnapshot.data();
         const postId = docSnapshot.id; 
         
+        // POST AUTHOR DETAILS FETCH
+        const postAuthorInfo = await getFreshUserData(postData.authorId);
+        const displayName = postAuthorInfo.fullName;
+        const displayBadge = postAuthorInfo.branch ? `${postAuthorInfo.branch}, ${postAuthorInfo.year}` : "Student";
+
         const postElement = document.createElement('div');
         postElement.className = 'post';
-        
-        const displayName = postData.authorName || postData.author || "Anonymous Student";
-        const displayBadge = postData.authorBranch ? `${postData.authorBranch}, ${postData.authorYear}` : "Student";
 
         const commentsList = postData.comments || [];
         let commentsHTML = '';
@@ -158,16 +161,32 @@ onSnapshot(postsQuery, (snapshot) => {
         const displayLimit = 15;
         const visibleComments = commentsList.slice(0, displayLimit);
         
-        visibleComments.forEach(comment => {
+        // COMMENT AUTHOR DETAILS FETCH & UI RENDER
+        for (const comment of visibleComments) {
+            const commentAuthorInfo = await getFreshUserData(comment.authorId);
+            
+            // 🔴 NAYA LOGIC: Check if user owns the comment
+            let actionButtons = '';
+            if (comment.authorId === currentUser.uid) {
+                // We use comment.commentId if it exists, otherwise fallback to timestamp for old comments
+                const uniqueCId = comment.commentId || comment.timestamp;
+                actionButtons = `
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="window.editComment('${postId}', '${uniqueCId}', '${escapeHTML(comment.text).replace(/'/g, "\\'")}', 'campus_posts')" style="background:none; border:none; color: #3b82f6; cursor:pointer; font-size:12px; padding:0;">✏️ Edit</button>
+                        <button onclick="window.deleteComment('${postId}', '${uniqueCId}', 'campus_posts')" style="background:none; border:none; color: #e11d48; cursor:pointer; font-size:12px; padding:0;">🗑️ Delete</button>
+                    </div>
+                `;
+            }
+
             commentsHTML += `
-                <div style="background: #f8f9fa; padding: 6px 10px; margin-top: 5px; border-radius: 6px; font-size: 14px;">
-                    <strong style="color: #333;">${escapeHTML(comment.authorName)}</strong>: ${escapeHTML(comment.text)}
+                <div style="background: #f8f9fa; padding: 8px 12px; margin-top: 5px; border-radius: 6px; font-size: 14px; display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <strong style="color: #333;">${escapeHTML(commentAuthorInfo.fullName)}</strong>: 
+                        <span style="color: #4b5563;">${escapeHTML(comment.text)}</span>
+                    </div>
+                    ${actionButtons}
                 </div>
             `;
-        });
-
-        if (commentsList.length > displayLimit) {
-             commentsHTML += `<button style="background: none; border: none; color: #8b5cf6; cursor: pointer; padding: 5px 0; font-size: 13px; font-weight: bold;">View all ${commentsList.length} comments...</button>`;
         }
 
         const likedBy = postData.likedBy || [];
@@ -214,7 +233,6 @@ onSnapshot(postsQuery, (snapshot) => {
         const likeBtn = postElement.querySelector('.like-btn');
         likeBtn.addEventListener('click', async function() {
             if (!currentUser) return;
-            
             const postRef = doc(db, "campus_posts", postId);
             
             if (isLiked) {
@@ -230,6 +248,7 @@ onSnapshot(postsQuery, (snapshot) => {
             }
         });
 
+      // CREATE COMMENT
         const commentBtn = postElement.querySelector('.comment-btn');
         const commentInput = postElement.querySelector('.comment-input');
         
@@ -239,16 +258,21 @@ onSnapshot(postsQuery, (snapshot) => {
             
             await updateDoc(doc(db, "campus_posts", postId), {
                 comments: arrayUnion({
+                    commentId: currentUser.uid + '_' + Date.now(), // 🔴 Unique ID added
                     text: commentText,
-                    authorId: currentUser.uid,
-                    authorName: userProfile.fullName
+                    authorId: currentUser.uid, 
+                    timestamp: Date.now()
                 })
             });
             commentInput.value = "";
         });
         
-        feedContainer.appendChild(postElement);
-    });
+        tempContainer.appendChild(postElement);
+    }
+    
+    // UI ko ek sath update karna taaki screen na hile
+    feedContainer.innerHTML = "";
+    feedContainer.appendChild(tempContainer);
 });
 
 // --- TRUE DAILY POLL LOGIC ---
@@ -338,5 +362,53 @@ window.reportPost = async (postId, collectionName) => {
     } catch (error) {
         console.error("Error reporting post:", error);
         alert("❌ Could not report the post. Try again.");
+    }
+};
+
+// 🔴 Global Edit Comment Function
+window.editComment = async (postId, commentId, oldText, collectionName) => {
+    const newText = prompt("Edit your comment:", oldText);
+    if (!newText || newText.trim() === "" || newText === oldText) return;
+    
+    const postRef = doc(db, collectionName, postId);
+    try {
+        const snap = await getDoc(postRef);
+        if(snap.exists()) {
+            const post = snap.data();
+            // Find and update the specific comment
+            const updatedComments = post.comments.map(c => {
+                const currentId = c.commentId || c.timestamp;
+                if(currentId.toString() === commentId.toString()) {
+                    return { ...c, text: newText.trim() };
+                }
+                return c;
+            });
+            await updateDoc(postRef, { comments: updatedComments });
+        }
+    } catch(e) {
+        console.error(e);
+        alert("Error editing comment.");
+    }
+};
+
+// 🔴 Global Delete Comment Function
+window.deleteComment = async (postId, commentId, collectionName) => {
+    if (!confirm("Are you sure you want to delete this comment?")) return;
+    
+    const postRef = doc(db, collectionName, postId);
+    try {
+        const snap = await getDoc(postRef);
+        if(snap.exists()) {
+            const post = snap.data();
+            // Filter out the deleted comment
+            const updatedComments = post.comments.filter(c => {
+                const currentId = c.commentId || c.timestamp;
+                return currentId.toString() !== commentId.toString();
+            });
+            await updateDoc(postRef, { comments: updatedComments });
+        }
+    } catch(e) {
+        console.error(e);
+        alert("Error deleting comment.");
     }
 };
