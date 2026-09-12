@@ -414,7 +414,7 @@ window.reportPost = async (postId, collectionName) => {
     }
 };
 
-// 🔴 Global Edit Comment Function
+// 🔴 Global Edit Comment Function (Crash-Proof)
 window.editComment = async (postId, commentId, oldText, collectionName) => {
     const newText = prompt("Edit your comment:", oldText);
     if (!newText || newText.trim() === "" || newText === oldText) return;
@@ -425,8 +425,9 @@ window.editComment = async (postId, commentId, oldText, collectionName) => {
         if(snap.exists()) {
             const post = snap.data();
             const updatedComments = post.comments.map(c => {
-                const currentId = c.commentId || c.timestamp;
-                if(currentId.toString() === commentId.toString()) {
+                // BUG FIX: Handle old undefined IDs safely
+                const currentId = c.commentId || c.timestamp || "";
+                if(currentId.toString() === (commentId || "").toString()) {
                     return { ...c, text: newText.trim() };
                 }
                 return c;
@@ -439,7 +440,7 @@ window.editComment = async (postId, commentId, oldText, collectionName) => {
     }
 };
 
-// 🔴 Global Delete Comment Function (Upgraded to delete orphaned replies)
+// 🔴 Global Delete Comment Function (Crash-Proof)
 window.deleteComment = async (postId, commentId, collectionName) => {
     if (!confirm("Are you sure you want to delete this comment?")) return;
     
@@ -448,10 +449,15 @@ window.deleteComment = async (postId, commentId, collectionName) => {
         const snap = await getDoc(postRef);
         if(snap.exists()) {
             const post = snap.data();
-            // Filter target comment AND any replies attached to it
             const updatedComments = post.comments.filter(c => {
-                const currentId = c.commentId || c.timestamp;
-                return currentId.toString() !== commentId.toString() && c.parentId !== commentId.toString();
+                // BUG FIX: Handle old undefined IDs safely
+                const currentId = c.commentId || c.timestamp || "";
+                const cIdStr = currentId.toString();
+                const pIdStr = c.parentId ? c.parentId.toString() : "";
+                const targetIdStr = (commentId || "").toString();
+                
+                // Dono strings match nahi honi chahiye (na khud ka ID, na parent ka ID)
+                return cIdStr !== targetIdStr && pIdStr !== targetIdStr;
             });
             await updateDoc(postRef, { comments: updatedComments });
         }

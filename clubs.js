@@ -357,7 +357,7 @@ function loadClubPosts() {
     });
 }
 
-// 🔴 Global Edit Club Comment Function
+// 🔴 Global Edit Club Comment Function (Crash-Proof)
 window.editClubComment = async (postId, commentId, oldText) => {
     const newText = prompt("Edit your comment:", oldText);
     if (!newText || newText.trim() === "" || newText === oldText) return;
@@ -368,8 +368,9 @@ window.editClubComment = async (postId, commentId, oldText) => {
         if(snap.exists()) {
             const post = snap.data();
             const updatedComments = post.comments.map(c => {
-                const currentId = c.commentId || c.timestamp;
-                if(currentId.toString() === commentId.toString()) {
+                // BUG FIX: Handle old undefined IDs safely
+                const currentId = c.commentId || c.timestamp || "";
+                if(currentId.toString() === (commentId || "").toString()) {
                     return { ...c, text: newText.trim() };
                 }
                 return c;
@@ -382,7 +383,7 @@ window.editClubComment = async (postId, commentId, oldText) => {
     }
 };
 
-// 🔴 Global Delete Club Comment Function (Deletes orphaned replies too)
+// 🔴 Global Delete Club Comment Function (Crash-Proof)
 window.deleteClubComment = async (postId, commentId) => {
     if (!confirm("Are you sure you want to delete this comment?")) return;
     
@@ -392,8 +393,13 @@ window.deleteClubComment = async (postId, commentId) => {
         if(snap.exists()) {
             const post = snap.data();
             const updatedComments = post.comments.filter(c => {
-                const currentId = c.commentId || c.timestamp;
-                return currentId.toString() !== commentId.toString() && c.parentId !== commentId.toString();
+                // BUG FIX: Handle old undefined IDs safely
+                const currentId = c.commentId || c.timestamp || "";
+                const cIdStr = currentId.toString();
+                const pIdStr = c.parentId ? c.parentId.toString() : "";
+                const targetIdStr = (commentId || "").toString();
+                
+                return cIdStr !== targetIdStr && pIdStr !== targetIdStr;
             });
             await updateDoc(postRef, { comments: updatedComments });
         }
