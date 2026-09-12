@@ -1,4 +1,4 @@
-const CACHE_NAME = 'campus-social-v3';
+const CACHE_NAME = 'campus-social-v4';
 const CORE_ASSETS = [
     '/',
     '/dashboard.html',
@@ -58,10 +58,13 @@ self.addEventListener('fetch', (event) => {
                 
                 return networkResponse;
             }).catch(() => {
-                // Agar internet band ho toh error crash na kare
+                // 🔴 BUG FIX: Agar internet aur cache dono na ho, toh ek empty response bhejo, undefined nahi. 
+                // Isse 'Failed to convert value to Response' error nahi aayega.
                 console.log("Offline mode active");
+                return new Response("Offline Mode", { status: 503, statusText: "Offline" });
             });
 
+            // Agar cache me hai toh turant dikhao, warna network ka wait karo
             return cachedResponse || fetchPromise;
         })
     );

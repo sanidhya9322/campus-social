@@ -224,7 +224,10 @@ function loadClubPosts() {
                 for (const comment of topLevelComments) {
                     const commenterId = comment.authorId || comment.uid; 
                     const commentAuthorInfo = await getFreshUserData(commenterId);
-                    const uniqueCId = comment.commentId || comment.timestamp;
+                    
+                    // 🔴 BUG FIX: Handle old comments safely and convert to string
+                    let uniqueCId = comment.commentId || comment.timestamp || `old_comment_${Math.random()}`;
+                    uniqueCId = uniqueCId.toString();
                     
                     // Main Comment Action Buttons
                     let actionButtons = '';
@@ -237,8 +240,8 @@ function loadClubPosts() {
                         `;
                     }
 
-                    // Process Nested Replies for this comment
-                    const replies = commentsArray.filter(c => c.parentId === uniqueCId.toString());
+                    // Process Nested Replies for this comment (Removed extra .toString() here)
+                    const replies = commentsArray.filter(c => c.parentId === uniqueCId);
                     let repliesHTML = '';
                     for (const reply of replies) {
                         const replyAuthorId = reply.authorId || reply.uid;

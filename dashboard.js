@@ -161,8 +161,11 @@ onSnapshot(postsQuery, async (snapshot) => {
         const visibleComments = topLevelComments.slice(0, displayLimit);
         
         for (const comment of visibleComments) {
-            const commentAuthorInfo = await getFreshUserData(comment.authorId);
-            const uniqueCId = comment.commentId || comment.timestamp;
+    const commentAuthorInfo = await getFreshUserData(comment.authorId);
+    
+    // 🔴 BUG FIX: Handle old comments that don't have an ID or timestamp
+    const uniqueCId = comment.commentId || comment.timestamp || `old_comment_${Math.random()}`;
+    const uniqueCIdStr = uniqueCId.toString();
             
             // Main Comment Action Buttons
             let actionButtons = '';
@@ -176,7 +179,7 @@ onSnapshot(postsQuery, async (snapshot) => {
             }
 
             // Fetch and render replies for this specific comment
-            const replies = allComments.filter(c => c.parentId === uniqueCId.toString());
+           const replies = allComments.filter(c => c.parentId === uniqueCIdStr);
             let repliesHTML = '';
             for (const reply of replies) {
                 const replyAuthorInfo = await getFreshUserData(reply.authorId);
@@ -330,16 +333,23 @@ const pollDocRef = doc(db, "polls", `poll_${todayString}`);
 let currentPollData = null;
 
 async function initPoll() {
-    const snap = await getDoc(pollDocRef);
-    if (!snap.exists()) {
-        await setDoc(pollDocRef, {
-            question: "Which programming language is best for beginners?", 
-            optionA: "Python", 
-            optionB: "JavaScript", 
-            votesA: 0,
-            votesB: 0,
-            votedUsers: [] 
-        });
+    if (!currentUser) return;
+    
+    try {
+        const snap = await getDoc(pollDocRef);
+        // 🔴 BUG FIX: Only Admins can auto-create the daily poll
+        if (!snap.exists() && adminEmails.includes(currentUser.email)) {
+            await setDoc(pollDocRef, {
+                question: "Which programming language is best for beginners?", 
+                optionA: "Python", 
+                optionB: "JavaScript", 
+                votesA: 0,
+                votesB: 0,
+                votedUsers: [] 
+            });
+        }
+    } catch (error) {
+        console.warn("Poll creation skipped (User is not an admin).");
     }
 }
 initPoll();
