@@ -33,6 +33,13 @@ function escapeHTML(str) {
     div.textContent = str;
     return div.innerHTML;
 }
+// 🔴 STABLE ID HELPER (Kabhi change nahi hoga)
+function getCommentId(comment) {
+    if (comment.commentId) return String(comment.commentId);
+    if (comment.timestamp) return String(comment.timestamp);
+    const safeText = comment.text ? comment.text.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20) : "empty";
+    return `old_${comment.authorId}_${safeText}`;
+}
 
 function canUserPost(postType = 'general') {
     const COOLDOWN_TIME = 60000; 
@@ -154,18 +161,15 @@ onSnapshot(postsQuery, async (snapshot) => {
 
         // 🔴 NAYA LOGIC: Nested Replies System
         const allComments = postData.comments || [];
-        const topLevelComments = allComments.filter(c => !c.parentId); // Main comments only
+        const topLevelComments = allComments.filter(c => !c.parentId); 
         
         let commentsHTML = '';
         const displayLimit = 15;
         const visibleComments = topLevelComments.slice(0, displayLimit);
         
         for (const comment of visibleComments) {
-    const commentAuthorInfo = await getFreshUserData(comment.authorId);
-    
-    // 🔴 BUG FIX: Handle old comments that don't have an ID or timestamp
-    const uniqueCId = comment.commentId || comment.timestamp || `old_comment_${Math.random()}`;
-    const uniqueCIdStr = uniqueCId.toString();
+            const commentAuthorInfo = await getFreshUserData(comment.authorId);
+            const uniqueCId = getCommentId(comment); // 🔴 Stable ID Fetch
             
             // Main Comment Action Buttons
             let actionButtons = '';
@@ -178,12 +182,12 @@ onSnapshot(postsQuery, async (snapshot) => {
                 `;
             }
 
-            // Fetch and render replies for this specific comment
-           const replies = allComments.filter(c => c.parentId === uniqueCIdStr);
+            // Process Nested Replies
+            const replies = allComments.filter(c => String(c.parentId) === uniqueCId);
             let repliesHTML = '';
             for (const reply of replies) {
                 const replyAuthorInfo = await getFreshUserData(reply.authorId);
-                const replyUniqueCId = reply.commentId || reply.timestamp;
+                const replyUniqueCId = getCommentId(reply); // 🔴 Stable ID Fetch
                 
                 let replyActions = '';
                 if (reply.authorId === currentUser.uid) {
@@ -414,7 +418,7 @@ window.reportPost = async (postId, collectionName) => {
     }
 };
 
-// 🔴 Global Edit Comment Function (Crash-Proof)
+// 🔴 Global Edit Comment Function (Crash-Proof & Stable)
 window.editComment = async (postId, commentId, oldText, collectionName) => {
     const newText = prompt("Edit your comment:", oldText);
     if (!newText || newText.trim() === "" || newText === oldText) return;
@@ -425,9 +429,7 @@ window.editComment = async (postId, commentId, oldText, collectionName) => {
         if(snap.exists()) {
             const post = snap.data();
             const updatedComments = post.comments.map(c => {
-                // BUG FIX: Handle old undefined IDs safely
-                const currentId = c.commentId || c.timestamp || "";
-                if(currentId.toString() === (commentId || "").toString()) {
+                if(getCommentId(c) === String(commentId)) {
                     return { ...c, text: newText.trim() };
                 }
                 return c;
@@ -440,7 +442,7 @@ window.editComment = async (postId, commentId, oldText, collectionName) => {
     }
 };
 
-// 🔴 Global Delete Comment Function (Crash-Proof)
+// 🔴 Global Delete Comment Function (Crash-Proof & Stable)
 window.deleteComment = async (postId, commentId, collectionName) => {
     if (!confirm("Are you sure you want to delete this comment?")) return;
     
@@ -450,13 +452,10 @@ window.deleteComment = async (postId, commentId, collectionName) => {
         if(snap.exists()) {
             const post = snap.data();
             const updatedComments = post.comments.filter(c => {
-                // BUG FIX: Handle old undefined IDs safely
-                const currentId = c.commentId || c.timestamp || "";
-                const cIdStr = currentId.toString();
-                const pIdStr = c.parentId ? c.parentId.toString() : "";
-                const targetIdStr = (commentId || "").toString();
+                const cIdStr = getCommentId(c);
+                const pIdStr = c.parentId ? String(c.parentId) : "";
+                const targetIdStr = String(commentId);
                 
-                // Dono strings match nahi honi chahiye (na khud ka ID, na parent ka ID)
                 return cIdStr !== targetIdStr && pIdStr !== targetIdStr;
             });
             await updateDoc(postRef, { comments: updatedComments });
@@ -466,7 +465,6 @@ window.deleteComment = async (postId, commentId, collectionName) => {
         alert("Error deleting comment.");
     }
 };
-
 // 🔴 Global function to toggle reply input visibility
 window.toggleReplyBox = (postId, commentId) => {
     const box = document.getElementById(`reply-box-${postId}-${commentId}`);

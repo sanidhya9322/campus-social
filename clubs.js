@@ -23,6 +23,15 @@ let currentUser = null;
 let userProfile = null;
 let currentClub = "Coding Club"; 
 
+// 🔴 STABLE ID HELPER (Kabhi change nahi hoga)
+function getCommentId(comment) {
+    if (comment.commentId) return String(comment.commentId);
+    if (comment.timestamp) return String(comment.timestamp);
+    // Purane comments jinki ID missing thi unke liye fix
+    const safeText = comment.text ? comment.text.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20) : "empty";
+    return `old_${comment.authorId}_${safeText}`;
+}
+
 // 🔴 DYNAMIC CACHE LOGIC
 const userCache = {};
 
@@ -193,7 +202,6 @@ window.submitClubComment = async (postId) => {
 const feedContainer = document.getElementById('club-live-posts');
 let unsubscribe = null;
 
-// 🔴 DYNAMIC FEED RENDER LOGIC (With Nested Replies)
 function loadClubPosts() {
     const postsQuery = query(collection(db, "club_posts"), orderBy("timestamp", "desc"));
     
@@ -225,9 +233,8 @@ function loadClubPosts() {
                     const commenterId = comment.authorId || comment.uid; 
                     const commentAuthorInfo = await getFreshUserData(commenterId);
                     
-                    // 🔴 BUG FIX: Handle old comments safely and convert to string
-                    let uniqueCId = comment.commentId || comment.timestamp || `old_comment_${Math.random()}`;
-                    uniqueCId = uniqueCId.toString();
+                    // 🔴 STABLE ID FETCH
+                    const uniqueCId = getCommentId(comment);
                     
                     // Main Comment Action Buttons
                     let actionButtons = '';
@@ -240,13 +247,15 @@ function loadClubPosts() {
                         `;
                     }
 
-                    // Process Nested Replies for this comment (Removed extra .toString() here)
-                    const replies = commentsArray.filter(c => c.parentId === uniqueCId);
+                    // Process Nested Replies for this comment
+                    const replies = commentsArray.filter(c => String(c.parentId) === uniqueCId);
                     let repliesHTML = '';
                     for (const reply of replies) {
                         const replyAuthorId = reply.authorId || reply.uid;
                         const replyAuthorInfo = await getFreshUserData(replyAuthorId);
-                        const replyUniqueCId = reply.commentId || reply.timestamp;
+                        
+                        // 🔴 STABLE ID FETCH
+                        const replyUniqueCId = getCommentId(reply);
                         
                         let replyActions = '';
                         if (replyAuthorId === currentUser.uid) {
@@ -280,15 +289,12 @@ function loadClubPosts() {
                                 ${actionButtons}
                             </div>
                             
-                            <!-- Reply Toggle Button -->
                             <button onclick="window.toggleClubReplyBox('${docSnapshot.id}', '${uniqueCId}')" style="background:none; border:none; color: gray; cursor:pointer; font-size:12px; padding:0; margin-top: 8px; font-weight: bold;">↩️ Reply</button>
                             
-                            <!-- Nested Replies Container -->
                             <div style="margin-left: 15px; border-left: 2px solid var(--border); padding-left: 10px; margin-top: 5px;">
                                 ${repliesHTML}
                             </div>
 
-                            <!-- Hidden Reply Input Box -->
                             <div id="club-reply-box-${docSnapshot.id}-${uniqueCId}" style="display: none; margin-top: 8px; margin-left: 15px;">
                                 <div style="display: flex; gap: 5px;">
                                     <input type="text" id="club-reply-input-${docSnapshot.id}-${uniqueCId}" placeholder="Reply to ${escapeHTML(commentAuthorInfo.fullName)}..." style="flex: 1; padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; background: var(--bg-color); color: var(--text-main);">
@@ -357,7 +363,7 @@ function loadClubPosts() {
     });
 }
 
-// 🔴 Global Edit Club Comment Function (Crash-Proof)
+// 🔴 Global Edit Club Comment Function (Crash-Proof & Stable)
 window.editClubComment = async (postId, commentId, oldText) => {
     const newText = prompt("Edit your comment:", oldText);
     if (!newText || newText.trim() === "" || newText === oldText) return;
@@ -368,9 +374,7 @@ window.editClubComment = async (postId, commentId, oldText) => {
         if(snap.exists()) {
             const post = snap.data();
             const updatedComments = post.comments.map(c => {
-                // BUG FIX: Handle old undefined IDs safely
-                const currentId = c.commentId || c.timestamp || "";
-                if(currentId.toString() === (commentId || "").toString()) {
+                if(getCommentId(c) === String(commentId)) {
                     return { ...c, text: newText.trim() };
                 }
                 return c;
@@ -383,7 +387,7 @@ window.editClubComment = async (postId, commentId, oldText) => {
     }
 };
 
-// 🔴 Global Delete Club Comment Function (Crash-Proof)
+// 🔴 Global Delete Club Comment Function (Crash-Proof & Stable)
 window.deleteClubComment = async (postId, commentId) => {
     if (!confirm("Are you sure you want to delete this comment?")) return;
     
@@ -393,11 +397,9 @@ window.deleteClubComment = async (postId, commentId) => {
         if(snap.exists()) {
             const post = snap.data();
             const updatedComments = post.comments.filter(c => {
-                // BUG FIX: Handle old undefined IDs safely
-                const currentId = c.commentId || c.timestamp || "";
-                const cIdStr = currentId.toString();
-                const pIdStr = c.parentId ? c.parentId.toString() : "";
-                const targetIdStr = (commentId || "").toString();
+                const cIdStr = getCommentId(c);
+                const pIdStr = c.parentId ? String(c.parentId) : "";
+                const targetIdStr = String(commentId);
                 
                 return cIdStr !== targetIdStr && pIdStr !== targetIdStr;
             });
@@ -409,7 +411,7 @@ window.deleteClubComment = async (postId, commentId) => {
     }
 };
 
-// 🔴 Global function to toggle reply input visibility in Clubs
+// Global function to toggle reply input visibility in Clubs
 window.toggleClubReplyBox = (postId, commentId) => {
     const box = document.getElementById(`club-reply-box-${postId}-${commentId}`);
     if(box) {
@@ -417,7 +419,7 @@ window.toggleClubReplyBox = (postId, commentId) => {
     }
 };
 
-// 🔴 Global function to submit a nested reply in Clubs
+// Global function to submit a nested reply in Clubs
 window.submitClubReply = async (postId, parentCommentId) => {
     const input = document.getElementById(`club-reply-input-${postId}-${parentCommentId}`);
     const text = input.value.trim();
